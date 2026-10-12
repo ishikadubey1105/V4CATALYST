@@ -3,6 +3,7 @@ from collections.abc import Iterator
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from .config import settings
 
@@ -32,6 +33,10 @@ def make_engine(url: str) -> Engine:
             cur.close()
 
         return engine
+    if settings.serverless:
+        # Each serverless instance is short-lived and there can be many: a pool per instance would exhaust the
+        # database's connections. Open one per request instead; use the host's pooled URL (e.g. Neon "-pooler").
+        return create_engine(url, poolclass=NullPool)
     # pool_pre_ping: hosted databases drop idle connections; check before reuse instead of failing a request.
     return create_engine(url, pool_pre_ping=True, pool_size=5, max_overflow=10, pool_recycle=1800)
 

@@ -63,6 +63,11 @@ up to the period end (index `ix_audit_action_at`), so they stay fast as the log 
 API's worker threads, so add workers (`uvicorn --workers N`) to serve more simultaneous downloads.
 For a demo with a full year of data: `python manage.py seed-history` (adds 21 months of complaints, once).
 
+## Deploying
+
+On Vercel (app + API in one project, PostgreSQL, Vercel Cron): see [`../DEPLOY.md`](../DEPLOY.md). Uploaded
+documents are stored in the database (`documents.content`), so no persistent disk is needed on any host.
+
 ## Database
 
 SQLite (`backend/baton.db`) is the zero-setup default. **PostgreSQL** is supported for deployment: set

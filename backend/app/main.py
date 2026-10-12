@@ -1,14 +1,16 @@
 """
 Thread API — implements frontend/src/api/contracts.ts. Every route lives under /api.
 
-    uvicorn app.main:app --reload --port 8080
+    uvicorn app.main:app --reload --port 8080      (on Vercel: api/index.py imports this app)
 """
 import asyncio
 import contextlib
 import logging
+import secrets
+import threading
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -16,7 +18,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .config import settings
 from .db import SessionLocal
-from .deadlines import deadline_loop
+from .deadlines import deadline_loop, run_watcher_exclusive
 from .errors import ApiError
 from .migrate import upgrade_db
 from .routers import ai, auth, cases, employees, handoffs, insights, notifications, sync
@@ -25,14 +27,37 @@ from .seed import seed
 logging.basicConfig(level=logging.INFO)
 
 
+_ready = False
+_ready_lock = threading.Lock()
+
+
+def ensure_ready() -> None:
+    """Migrate (and seed) once per process. Runs at startup, or on the first request where startup hooks don't run."""
+    global _ready
+    if _ready:
+        return
+    with _ready_lock:
+        if _ready:
+            return
+        if settings.serverless and settings.database_url.startswith("sqlite"):
+            # A SQLite file on a serverless host is per-instance and wiped on every cold start: sessions and data
+            # would vanish at random. Refuse clearly instead.
+            raise ApiError(503, "DATABASE_NOT_CONFIGURED",
+                           "No database configured: set DATABASE_URL (or POSTGRES_URL) to a PostgreSQL URL in the Vercel project.")
+        upgrade_db()  # Alembic migrations; also adopts databases created before migrations existed
+        if settings.seed_demo:
+            with SessionLocal() as db:
+                if seed(db):
+                    logging.getLogger("baton").info("Seeded demo data")
+        _ready = True
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    upgrade_db()  # Alembic migrations; also adopts databases created before migrations existed
-    if settings.seed_demo:
-        with SessionLocal() as db:
-            if seed(db):
-                logging.getLogger("baton").info("Seeded demo data")
-    watcher = asyncio.create_task(deadline_loop(settings.deadline_interval_seconds)) if settings.deadline_interval_seconds > 0 else None
+    if not settings.serverless:
+        ensure_ready()
+    run_loop = settings.deadline_interval_seconds > 0 and not settings.serverless  # serverless: cron + traffic instead
+    watcher = asyncio.create_task(deadline_loop(settings.deadline_interval_seconds)) if run_loop else None
     yield
     if watcher:
         watcher.cancel()
@@ -49,6 +74,16 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
     expose_headers=["Content-Disposition"],  # lets the browser read the PDF's file name cross-origin
 )
+
+
+@app.middleware("http")
+async def ready_first(request: Request, call_next):
+    if not _ready:
+        try:
+            await asyncio.to_thread(ensure_ready)
+        except ApiError as exc:
+            return JSONResponse({"code": exc.code, "message": exc.message}, status_code=exc.status)
+    return await call_next(request)
 
 
 # ---------- Every error leaves as { code, message } ----------
@@ -85,3 +120,15 @@ for r in (auth.router, sync.router, cases.router, handoffs.router, notifications
 @app.get("/api/health", tags=["meta"])
 def health():
     return {"ok": True}
+
+
+@app.get("/api/cron/deadlines", tags=["meta"])
+def cron_deadlines(authorization: str | None = Header(default=None)):
+    """Deadline watcher for hosts without a background loop. Vercel Cron calls it with Bearer CRON_SECRET."""
+    if not settings.cron_secret:
+        raise ApiError(404, "CRON_DISABLED", "Set CRON_SECRET to enable this endpoint.")
+    if not secrets.compare_digest(authorization or "", f"Bearer {settings.cron_secret}"):
+        raise ApiError(401, "UNAUTHENTICATED", "Invalid cron secret.")
+    with SessionLocal() as db:
+        n = run_watcher_exclusive(db)
+    return {"ok": True, "overdue": n, "skipped": n is None}

@@ -1,8 +1,9 @@
 import re
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import APIRouter, File, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
 
 from .. import models as m
@@ -211,29 +212,20 @@ async def upload_documents(case_id: str, user: CurrentUser, db: Db, files: list[
     if not files:
         raise bad_request("No files were sent.")
 
-    folder = Path(settings.upload_dir) / c.id
-    folder.mkdir(parents=True, exist_ok=True)
-    written: list[Path] = []
+    limit_mb = f"{settings.max_upload_bytes / 1_000_000:g} MB"
     try:
         for f in files:
             name = _safe_name(f.filename or "file")
-            doc_id = m.uid("f")
-            path = folder / f"{doc_id}_{name}"
-            size = 0
-            with path.open("wb") as out:
-                written.append(path)
-                while chunk := await f.read(1024 * 1024):
-                    size += len(chunk)
-                    if size > settings.max_upload_bytes:
-                        raise ApiError(413, "FILE_TOO_LARGE", f"{name} is larger than 25 MB.")
-                    out.write(chunk)
-            db.add(m.Document(id=doc_id, case_id=c.id, name=name, kind=_kind(name), size=size, by=user.id, at=m.now(),
-                              storage_path=str(path), content_type=(f.content_type or "")[:120] or None))
+            data = bytearray()
+            while chunk := await f.read(1024 * 1024):
+                data += chunk
+                if len(data) > settings.max_upload_bytes:
+                    raise ApiError(413, "FILE_TOO_LARGE", f"{name} is larger than {limit_mb}.")
+            db.add(m.Document(id=m.uid("f"), case_id=c.id, name=name, kind=_kind(name), size=len(data), by=user.id, at=m.now(),
+                              content=bytes(data), content_type=(f.content_type or "")[:120] or None))
             log(db, "document.uploaded", name, c.id, user.id)
     except Exception:
         db.rollback()
-        for p in written:
-            p.unlink(missing_ok=True)
         raise
     touch(c)
     db.commit()
@@ -247,9 +239,12 @@ def download_document(doc_id: str, user: CurrentUser, db: Db):
     if not d:
         raise not_found("Document")
     require_view(db, user, get_case(db, d.case_id))
-    if not d.storage_path or not Path(d.storage_path).is_file():
-        raise ApiError(404, "NO_FILE", "This document has no stored file (demo seed data).")
-    return FileResponse(d.storage_path, filename=d.name, media_type=d.content_type or "application/octet-stream")
+    media = d.content_type or "application/octet-stream"
+    if d.content is not None:
+        return Response(d.content, media_type=media, headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(d.name)}"})
+    if d.storage_path and Path(d.storage_path).is_file():  # uploaded before files moved into the database
+        return FileResponse(d.storage_path, filename=d.name, media_type=media)
+    raise ApiError(404, "NO_FILE", "This document has no stored file (demo seed data).")
 
 
 # ---------- Questions ----------
