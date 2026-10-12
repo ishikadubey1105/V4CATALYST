@@ -9,6 +9,7 @@ from ..deps import CurrentUser, Db
 from ..errors import bad_request, forbidden
 from ..report_pdf import render_report_pdf
 from ..reports import Period, build_report, make_period
+from ..config import local_tz
 from ..services import log
 
 router = APIRouter(tags=["insights"])
@@ -24,7 +25,7 @@ def alerts(user: CurrentUser, db: Db):
 def _period(user: m.Employee, period: str, year: int | None, month: int | None) -> Period:
     if user.org_role not in ("admin", "auditor"):
         raise forbidden("Reports are available to admins and auditors.")
-    now = m.now()
+    now = m.now().astimezone(local_tz())  # "this month" is the organisation's month
     year = year or now.year
     if period == "month":
         month = month or now.month

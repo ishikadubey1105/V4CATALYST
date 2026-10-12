@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import models as m
-from .config import settings
+from .config import local_tz, settings
 from .db import SessionLocal
 from .services import log, notify
 
@@ -44,7 +44,7 @@ def _due_soon_reminders(db: Session) -> None:
     for t in db.scalars(select(m.Task).where(m.Task.done.is_(False), m.Task.owner_id.is_not(None), m.Task.due >= now,
                                              m.Task.due < soon, m.Task.due_soon_notified.is_(False))):
         c = db.get(m.Case, t.case_id)
-        notify(db, t.owner_id, "reminder", f"Due soon: {t.title}", f"{c.code} · due {t.due:%d %b %H:%M} UTC",
+        notify(db, t.owner_id, "reminder", f"Due soon: {t.title}", f"{c.code} · due {t.due.astimezone(local_tz()):%d %b %H:%M %Z}",
                f"/cases/{t.case_id}?tab=actions&highlight={t.id}")
         t.due_soon_notified = True
 

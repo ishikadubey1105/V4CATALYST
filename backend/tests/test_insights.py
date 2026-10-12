@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from app import models as m
 from app.db import SessionLocal
 from app.deadlines import run_deadline_watcher
+from app.config import local_tz
 from app.seed_history import seed_history
 
 
@@ -104,7 +105,7 @@ def test_report_access(client, login):
 def test_month_report_counts_activity(client, login):
     admin, asha = login("meera.iyer"), login("asha.rao")
     before = report(client, admin).json()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(local_tz())  # periods follow the organisation timezone
     assert before["period"]["kind"] == "month" and len(before["trend"]) in (28, 29, 30, 31)
 
     # Register one complaint and resolve another this month

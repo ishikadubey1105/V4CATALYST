@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from . import models as m
 from .schemas import SECTIONS
+from .config import local_tz
 from .security import hash_password
 
 ACCOUNTS = [
@@ -27,7 +28,7 @@ def seed(db: Session) -> bool:
         return False
 
     now = m.now()
-    local_now = datetime.now().astimezone()
+    local_now = now.astimezone(local_tz())  # deadlines end at local end-of-day, as people would set them
 
     def days_ago(n: float) -> datetime:
         return now - timedelta(days=n)

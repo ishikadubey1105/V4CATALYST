@@ -10,6 +10,8 @@ matplotlib>=3.8
 # PostgreSQL driver (only used when DATABASE_URL points at Postgres)
 psycopg[binary]>=3.2
 pydantic>=2.7
+# timezone database (Windows has none built in; used for APP_TIMEZONE)
+tzdata>=2024.1
 pydantic-settings>=2.3
 python-multipart>=0.0.9
 # tests

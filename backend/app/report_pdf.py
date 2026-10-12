@@ -20,6 +20,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.pdfgen.canvas import Canvas
+from .config import local_tz
 from reportlab.platypus import Image, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 # Chart text in the closest installed match to the PDF's Helvetica (chosen once, so matplotlib doesn't warn per glyph)
@@ -235,9 +236,10 @@ DEFINITIONS = [
 def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> bytes:
     period = r["period"]
     yearly = period["kind"] == "year"
-    start = datetime.fromisoformat(period["start"].replace("Z", "+00:00"))
-    end = datetime.fromisoformat(period["end"].replace("Z", "+00:00"))
-    generated = datetime.fromisoformat(r["generatedAt"].replace("Z", "+00:00"))
+    start = datetime.fromisoformat(period["start"].replace("Z", "+00:00")).astimezone(local_tz())
+    end = datetime.fromisoformat(period["end"].replace("Z", "+00:00")).astimezone(local_tz())
+    tz = local_tz()
+    generated = datetime.fromisoformat(r["generatedAt"].replace("Z", "+00:00")).astimezone(tz)
     in_progress = start <= generated < end
     k, p, pl = r["kpis"], r["previous"], period["previousLabel"]
     full_label = f"{start:%B %Y}" if not yearly else period["label"]
@@ -255,7 +257,7 @@ def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> 
         canvas.setLineWidth(0.5)
         canvas.line(MARGIN, PAGE_H - 14 * mm, PAGE_W - MARGIN, PAGE_H - 14 * mm)
         canvas.line(MARGIN, 15 * mm, PAGE_W - MARGIN, 15 * mm)
-        canvas.drawString(MARGIN, 11 * mm, f"Generated {generated:%d %b %Y %H:%M} UTC · Source: Thread case records and audit log")
+        canvas.drawString(MARGIN, 11 * mm, f"Generated {generated:%d %b %Y %H:%M} {generated:%Z} · Source: Thread case records and audit log")
         canvas.restoreState()
 
     story: list = [
@@ -269,7 +271,7 @@ def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> 
         ("Compared with", pl + (" (same point in the previous period, like for like)" if in_progress else "")),
         ("Prepared for", "Operations and Risk & Audit leadership"),
         ("Requested by", generated_by),
-        ("Data as of", f"{generated:%d %B %Y, %H:%M} UTC"),
+        ("Data as of", f"{generated:%d %B %Y, %H:%M} {generated:%Z}"),
     ]
     mt = Table([[Paragraph(a, S["meta_k"]), Paragraph(b, S["meta_v"])] for a, b in meta], colWidths=[34 * mm, CONTENT_W - 34 * mm])
     mt.setStyle(TableStyle([("LINEABOVE", (0, 0), (-1, 0), 0.9, colors.HexColor(INK)), ("LINEBELOW", (0, -1), (-1, -1), 0.5, colors.HexColor(RULE)),
@@ -379,7 +381,7 @@ def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> 
         Paragraph("Appendix A.&nbsp;&nbsp;Definitions and method", S["h1"]),
         *[Paragraph(f"<b>{term}</b> — {text}", S["def"]) for term, text in DEFINITIONS],
         Paragraph("All figures are computed from Thread's case records and its append-only audit log at the time of generation. "
-                  "Dates are in UTC. Figures for a period in progress are provisional.", S["note"]),
+                  f"Dates and periods are in {tz.key} time ({generated:%Z}). Figures for a period in progress are provisional.", S["note"]),
     ])]
 
     buf = BytesIO()

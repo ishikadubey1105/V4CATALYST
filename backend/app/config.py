@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     alert_question_wait_hours: int = 48   # an unanswered question this old is flagged
     alert_stale_case_days: int = 7        # an open case with no activity this long is flagged
 
+    # Organisation timezone: report periods, report timestamps and reminder texts use it (servers run on UTC)
+    app_timezone: str = "Asia/Kolkata"
+
     max_failed_logins: int = 5
     max_upload_bytes: int = 25_000_000
 
@@ -35,3 +38,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def local_tz():
+    """The organisation's timezone (IANA name in APP_TIMEZONE)."""
+    from zoneinfo import ZoneInfo
+
+    return ZoneInfo(settings.app_timezone)

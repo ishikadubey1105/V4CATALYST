@@ -4,13 +4,14 @@ Monthly / yearly management report, built from the records and the append-only a
 """
 from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from statistics import mean, median
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import models as m
+from .config import local_tz
 from .serializers import iso
 
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -36,24 +37,30 @@ class Period:
 
     def buckets(self) -> list[tuple[str, datetime, datetime]]:
         if self.kind == "year":
-            return [(MONTHS[i], _utc(self.year, i + 1), _month_end(self.year, i + 1)) for i in range(12)]
-        days = (self.end - self.start).days
-        return [(str(d + 1), _utc(self.year, self.month, d + 1), _utc(self.year, self.month, d + 1) + (self.end - self.start) / days)
-                for d in range(days)]
+            return [(MONTHS[i], _boundary(self.year, i + 1), _month_end(self.year, i + 1)) for i in range(12)]
+        days = (self.end.date() - self.start.date()).days
+        first = date(self.year, self.month, 1)
+        return [(str(d + 1), _local_day(first + timedelta(days=d)), _local_day(first + timedelta(days=d + 1))) for d in range(days)]
 
 
-def _utc(y: int, mo: int, d: int = 1) -> datetime:
-    return datetime(y, mo, d, tzinfo=timezone.utc)
+def _local_day(day: date) -> datetime:
+    """Midnight at the start of `day` in the organisation's timezone."""
+    return datetime(day.year, day.month, day.day, tzinfo=local_tz())
+
+
+def _boundary(y: int, mo: int, d: int = 1) -> datetime:
+    """A period boundary: local midnight in the organisation's timezone."""
+    return _local_day(date(y, mo, d))
 
 
 def _month_end(y: int, mo: int) -> datetime:
-    return _utc(y + 1, 1) if mo == 12 else _utc(y, mo + 1)
+    return _boundary(y + 1, 1) if mo == 12 else _boundary(y, mo + 1)
 
 
 def make_period(kind: str, year: int, month: int | None) -> Period:
     if kind == "year":
-        return Period("year", year, None, _utc(year, 1), _utc(year + 1, 1))
-    return Period("month", year, month, _utc(year, month), _month_end(year, month))
+        return Period("year", year, None, _boundary(year, 1), _boundary(year + 1, 1))
+    return Period("month", year, month, _boundary(year, month), _month_end(year, month))
 
 
 def _in(at: datetime | None, p: Period) -> bool:

@@ -63,7 +63,7 @@ export default function Dashboard() {
   if (staff && overdueMine.length) parts.push(<>{plural(overdueMine.length, 'overdue task')}</>)
   if (!staff && inFlight.length) parts.push(<>{plural(inFlight.length, 'case')} mid-handoff</>)
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const greeting = hour < 5 ? 'Working late' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
 
   const stats = staff
