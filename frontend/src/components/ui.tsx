@@ -285,7 +285,7 @@ export function Empty({ title, body, action }: { title: string; body?: string; a
   )
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-medium text-zinc-700">{label}{hint && <span className="ml-1 font-normal text-zinc-400">{hint}</span>}</span>

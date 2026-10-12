@@ -109,6 +109,11 @@ function RegisterModal({ open, onClose }: { open: boolean; onClose: () => void }
   const set = <K extends keyof NewCase>(k: K) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value as NewCase[K] })
   const valid = form.title.trim().length >= 5 && form.complainant.trim() && form.summary.trim().length >= 20
   const owners = employees.filter((u) => u.active && u.orgRole !== 'auditor')
+  // Live "n/min" counter so it's obvious why Register is disabled.
+  const count = (value: string, min: number) => {
+    const n = value.trim().length
+    return <span className={n >= min ? 'text-green-700' : n > 0 ? 'text-amber-700' : undefined}>{n >= min ? '✓' : `${n}/${min} characters`}</span>
+  }
 
   return (
     <Modal
@@ -125,7 +130,7 @@ function RegisterModal({ open, onClose }: { open: boolean; onClose: () => void }
       </>}
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="sm:col-span-2"><Field label="Complaint title" hint="min. 5 characters"><input className={inputClass} value={form.title} onChange={set('title')} placeholder="e.g. Refund not received after return" /></Field></div>
+        <div className="sm:col-span-2"><Field label="Complaint title" hint={count(form.title, 5)}><input className={inputClass} value={form.title} onChange={set('title')} placeholder="e.g. Refund not received after return" /></Field></div>
         <Field label="Complainant"><input className={inputClass} value={form.complainant} onChange={set('complainant')} placeholder="Customer or organisation" /></Field>
         <Field label="Received via">
           <select className={inputClass} value={form.channel} onChange={set('channel')}>{channels.map((c) => <option key={c}>{c}</option>)}</select>
@@ -145,7 +150,7 @@ function RegisterModal({ open, onClose }: { open: boolean; onClose: () => void }
             </select>
           </Field>
         </div>
-        <div className="sm:col-span-2"><Field label="Summary" hint="min. 20 characters"><textarea className={inputClass} rows={3} value={form.summary} onChange={set('summary')} placeholder="What happened, what does the complainant want, what has been done so far?" /></Field></div>
+        <div className="sm:col-span-2"><Field label="Summary" hint={count(form.summary, 20)}><textarea className={inputClass} rows={3} value={form.summary} onChange={set('summary')} placeholder="What happened, what does the complainant want, what has been done so far?" /></Field></div>
       </div>
     </Modal>
   )
