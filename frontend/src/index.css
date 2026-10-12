@@ -10,9 +10,10 @@
  * Status colours (red / amber / green) keep their meaning only.
  */
 @theme {
-  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
-  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  /* Editorial serif for headlines, a calm Swiss grotesk for the interface, a precise mono for case codes */
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font-display: "Newsreader", ui-serif, Georgia, serif;
 
   --color-zinc-50: #fbfaf8;
   --color-zinc-100: #f5f2ed;
@@ -108,8 +109,9 @@ html { background: var(--color-paper); }
 body {
   @apply text-zinc-900 antialiased;
   background: var(--color-paper);
-  font-size: 13px;
-  font-feature-settings: "ss01", "cv11";
+  font-size: 13.5px;
+  letter-spacing: 0.002em;
+  font-feature-settings: "kern", "liga", "tnum" 0;
   text-rendering: optimizeLegibility;
 }
 ::selection { background: var(--color-blue-100); color: var(--color-blue-900); }
@@ -119,7 +121,9 @@ body {
 /* Calm, thin scrollbars */
 * { scrollbar-width: thin; scrollbar-color: var(--color-zinc-300) transparent; }
 
-.font-display { font-family: var(--font-display); font-optical-sizing: auto; letter-spacing: -0.015em; }
+@layer components { .font-display { font-family: var(--font-display); font-optical-sizing: auto; letter-spacing: -0.012em; font-weight: 500; } }
+/* Figures line up in tables and counters */
+.tabular-nums, td, .font-mono { font-variant-numeric: tabular-nums; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
