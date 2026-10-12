@@ -6,7 +6,7 @@ frontend/src/lib/types.ts. Credentials, sessions and failed-login counts never l
 import secrets
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, TypeDecorator
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, TypeDecorator, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -128,6 +128,9 @@ class Task(Base):
     due: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
     done: Mapped[bool] = mapped_column(Boolean, default=False)
     overdue_notified: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Alert system: each reminder fires once per deadline (reset when the deadline changes)
+    due_soon_notified: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    escalated: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(UtcDateTime, default=now)
 
 
@@ -159,6 +162,7 @@ class Handoff(Base):
     decided_at: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
     reject_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     acks: Mapped[dict] = mapped_column(JSON)
+    reminded: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())  # waiting-handoff reminder sent
 
 
 class Ownership(Base):

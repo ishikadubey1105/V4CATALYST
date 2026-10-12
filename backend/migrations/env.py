@@ -19,9 +19,10 @@ def run_migrations_online() -> None:
     if connection is not None:
         _run(connection)
         return
-    with engine.connect() as conn:
+    from app.migrate import migration_connection  # SQLite: foreign keys off during table rebuilds, checked after
+
+    with migration_connection(engine) as conn:
         _run(conn)
-        conn.commit()
 
 
 def _run(connection) -> None:

@@ -16,12 +16,37 @@ export const tokenStore = {
   set: (t: string | null) => { try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY) } catch { /* private mode */ } },
 }
 
+/** Fetches a file (e.g. a PDF) with the bearer token and saves it under the server's suggested name. */
+export async function downloadFile(ep: Endpoint<unknown, unknown>, query: Record<string, string | number | undefined> = {}, fallbackName = 'download'): Promise<void> {
+  const filled = Object.entries(query).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+  const token = tokenStore.get()
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE}${ep.path}?${new URLSearchParams(filled)}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  } catch {
+    throw new ApiError(0, 'NETWORK', 'Cannot reach the server. Check your connection.')
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { code?: string; message?: string }
+    throw new ApiError(res.status, err.code ?? `HTTP_${res.status}`, err.message ?? res.statusText)
+  }
+  const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? fallbackName
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 /** Typed fetch wrapper: fills :params into the path, attaches the bearer token, maps errors to ApiError. */
 export async function request<Req, Res>(
   ep: Endpoint<Req, Res>,
-  opts: { params?: Record<string, string>; body?: Req } = {},
+  opts: { params?: Record<string, string>; body?: Req; query?: Record<string, string | number | undefined> } = {},
 ): Promise<Res> {
-  const path = ep.path.replace(/:(\w+)/g, (_, k) => encodeURIComponent(opts.params?.[k] ?? ''))
+  const filled = Object.entries(opts.query ?? {}).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+  const qs = filled.length ? `?${new URLSearchParams(filled)}` : ''
+  const path = ep.path.replace(/:(\w+)/g, (_, k) => encodeURIComponent(opts.params?.[k] ?? '')) + qs
   const isForm = opts.body instanceof FormData
   const token = tokenStore.get()
   let res: Response

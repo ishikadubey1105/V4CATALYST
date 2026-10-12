@@ -25,6 +25,36 @@ VITE_API_MODE=http
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
+## AI handoff assistant
+
+Two buttons use Claude (`claude-opus-5-5`) to make handoffs safer:
+
+- **Forward wizard › Handoff note › Draft with AI** (case owner) — writes the handoff note from the case record and lists
+  what to do first, the risks, and the gaps to fix before forwarding. The owner reviews, edits, and can undo it.
+- **Handoff review › AI briefing › Brief me** (receiver) — what you are taking on, risks, and questions to ask the
+  sender before accepting (including claims in the note the record doesn't support).
+
+Set `ANTHROPIC_API_KEY` in `backend/.env` to turn it on. Without a key, or if a call fails, a template built from the same
+records answers instead, labelled as such, so the demo never breaks. Requests use structured JSON output and server-side
+refusal fallbacks (`fallbacks: "default"`); case text is passed as data, not instructions. Each use is audit-logged
+(`ai.handoff_drafted`, `ai.handoff_briefed`). Code: `app/ai.py`, `app/routers/ai.py`.
+
+## Alerts and reports
+
+**Alerts** (`GET /api/alerts`, page **Alerts**, red banner when anything is critical): overdue tasks (critical after
+48h), tasks due within 24h, forwards waiting over 24h, questions unanswered over 48h, open cases idle for 7 days.
+Employees see what they can act on; admins and auditors see everything. The deadline watcher (`app/deadlines.py`)
+also sends, once each: a reminder 24h before a deadline, the overdue notice, an **escalation to every admin** at 48h
+overdue (`deadline.escalated` in the audit log), and a reminder to the receiver of a forward waiting 24h.
+Thresholds are settings (`ALERT_*` in `app/config.py`).
+
+**Reports** (`GET /api/reports/summary?period=month|year&year=&month=`, page **Reports**, admins and auditors):
+received / resolved / open, average time to resolve, forwards and acceptance rate, missed deadlines and escalations,
+each compared with the previous period; a trend chart; breakdowns by category, priority, channel and current stage;
+a per-employee table; a written summary. **Download PDF report** (`GET /api/reports/summary.pdf`) gives a two-page
+A4 summary with charts, key findings and current open risks (`app/report_pdf.py`, reportlab + matplotlib); also CSV export. History comes from the audit trail.
+For a demo with a full year of data: `python manage.py seed-history` (adds 21 months of complaints, once).
+
 ## Database
 
 SQLite (`backend/baton.db`) is the zero-setup default. **PostgreSQL** is supported for deployment: set
@@ -40,6 +70,7 @@ adopted without touching its data.
 | `python manage.py status` | Which database, schema revision, row counts |
 | `python manage.py migrate` | Apply pending migrations (startup does this too) |
 | `python manage.py seed` | Load the demo data into an empty database |
+| `python manage.py seed-history` | Add 21 months of complaints for the monthly / yearly reports (once) |
 | `python manage.py create-admin USER "Name" EMAIL` | First admin for a real deployment (`SEED_DEMO=false`); prints a one-time password |
 | `python manage.py reset --yes` | **Deletes everything**, re-creates the schema, reloads the demo data |
 
@@ -68,6 +99,8 @@ migrations, legacy-database adoption, downgrade/upgrade round trip).
 |---|---|
 | `app/main.py` | App, CORS, `{code, message}` error handlers, startup (create tables, seed, deadline loop) |
 | `app/routers/*.py` | One module per area: `auth`, `sync`, `cases` (+ tasks, notes, decisions, documents, questions), `handoffs`, `notifications`, `employees` |
+| `app/ai.py`, `app/routers/ai.py` | AI handoff assistant (Claude + template fallback) |
+| `app/alerts.py`, `app/reports.py`, `app/routers/insights.py` | Alert rules and the monthly / yearly report |
 | `app/rules.py` | Port of `permissions.ts` + `completeness.ts`: case roles, visibility, stage rules, 8-check gate |
 | `app/models.py` | SQLAlchemy tables |
 | `app/migrate.py`, `migrations/` | Alembic setup and migration scripts |

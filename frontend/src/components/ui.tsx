@@ -1,7 +1,7 @@
 import { useEffect, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react'
 import { Link, type LinkProps } from 'react-router-dom'
 import { AlertTriangle, Check, CheckCircle2, Clock, Info, X } from 'lucide-react'
-import { cn, dueState, initials } from '../lib/utils'
+import { avatarTone, cn, dueState, initials } from '../lib/utils'
 import { stages, stageIndex } from '../lib/permissions'
 import type { CaseRole, DocKind, Employee, Priority, Stage, Task } from '../lib/types'
 import { caseRoleLabel } from '../lib/permissions'
@@ -13,18 +13,18 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link'
 type Size = 'sm' | 'md'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-zinc-900 text-white hover:bg-zinc-700 border border-zinc-900',
-  secondary: 'bg-white text-zinc-800 border border-zinc-300 hover:bg-zinc-50',
-  ghost: 'text-zinc-600 hover:bg-zinc-100 border border-transparent',
-  danger: 'bg-white text-red-700 border border-red-300 hover:bg-red-50',
-  link: 'text-blue-700 hover:underline border border-transparent px-0',
+  primary: 'bg-zinc-900 text-white hover:bg-zinc-800 border border-zinc-900 shadow-sm',
+  secondary: 'bg-white text-zinc-800 border border-zinc-300/80 shadow-xs hover:bg-zinc-50 hover:border-zinc-300',
+  ghost: 'text-zinc-600 hover:bg-zinc-200/60 hover:text-zinc-900 border border-transparent',
+  danger: 'bg-white text-red-700 border border-red-200 shadow-xs hover:bg-red-50',
+  link: 'text-blue-700 hover:text-blue-800 hover:underline underline-offset-2 border border-transparent px-0',
 }
-const sizes: Record<Size, string> = { sm: 'h-7 px-2.5 text-xs', md: 'h-8 px-3 text-[13px]' }
+const sizes: Record<Size, string> = { sm: 'h-7 px-2.5 text-xs rounded-md', md: 'h-9 px-3.5 text-[13px] rounded-lg' }
 
 export const buttonClass = (variant: Variant = 'primary', size: Size = 'md', className?: string) =>
   cn(
-    'inline-flex items-center justify-center gap-1.5 rounded font-medium whitespace-nowrap transition-colors',
-    'disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600',
+    'inline-flex items-center justify-center gap-1.5 font-medium whitespace-nowrap transition-[background-color,border-color,color,transform] duration-150 active:translate-y-px',
+    'disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
     variants[variant], sizes[size], variant === 'link' && 'h-auto px-0', className,
   )
 
@@ -39,15 +39,15 @@ export function ButtonLink({ variant, size, className, ...props }: LinkProps & {
 /* ---------- Surfaces ---------- */
 
 export function Panel({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <section className={cn('rounded-md border border-zinc-200 bg-white', className)} {...props} />
+  return <section className={cn('overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm', className)} {...props} />
 }
 
 export function PanelHeader({ title, sub, action, className }: { title: ReactNode; sub?: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <div className={cn('flex min-h-11 items-center justify-between gap-3 border-b border-zinc-200 px-4 py-2', className)}>
+    <div className={cn('flex min-h-12 items-center justify-between gap-3 border-b border-zinc-100 px-5 py-3', className)}>
       <div className="min-w-0">
-        <h2 className="text-[13px] font-semibold text-zinc-900">{title}</h2>
-        {sub && <p className="text-xs text-zinc-500">{sub}</p>}
+        <h2 className="text-[13.5px] font-semibold tracking-[-0.005em] text-zinc-900">{title}</h2>
+        {sub && <p className="mt-0.5 text-xs text-zinc-500">{sub}</p>}
       </div>
       {action}
     </div>
@@ -56,11 +56,11 @@ export function PanelHeader({ title, sub, action, className }: { title: ReactNod
 
 export function PageHeader({ title, sub, actions, crumb }: { title: ReactNode; sub?: ReactNode; actions?: ReactNode; crumb?: ReactNode }) {
   return (
-    <div className="mb-5 flex flex-col gap-3 border-b border-zinc-200 pb-4 md:flex-row md:items-end md:justify-between">
+    <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="min-w-0">
-        {crumb && <div className="mb-1 text-xs text-zinc-500">{crumb}</div>}
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900">{title}</h1>
-        {sub && <div className="mt-0.5 text-[13px] text-zinc-500">{sub}</div>}
+        {crumb && <div className="mb-1.5 text-xs text-zinc-500 [&_a]:text-zinc-600 [&_a:hover]:text-zinc-900">{crumb}</div>}
+        <h1 className="font-display text-[28px] font-medium leading-tight text-zinc-900">{title}</h1>
+        {sub && <div className="mt-1 text-[13px] text-zinc-500">{sub}</div>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -84,15 +84,15 @@ export function KeyValue({ items }: { items: [string, ReactNode][] }) {
 
 type Tone = 'neutral' | 'green' | 'amber' | 'red' | 'blue'
 const tones: Record<Tone, string> = {
-  neutral: 'border-zinc-300 bg-zinc-50 text-zinc-700',
-  green: 'border-green-300 bg-green-50 text-green-800',
-  amber: 'border-amber-300 bg-amber-50 text-amber-800',
-  red: 'border-red-300 bg-red-50 text-red-800',
-  blue: 'border-blue-300 bg-blue-50 text-blue-800',
+  neutral: 'border-zinc-200 bg-zinc-100/70 text-zinc-700',
+  green: 'border-emerald-200/80 bg-emerald-50 text-emerald-800',
+  amber: 'border-amber-200/80 bg-amber-50 text-amber-800',
+  red: 'border-red-200/80 bg-red-50 text-red-700',
+  blue: 'border-blue-200/80 bg-blue-50 text-blue-800',
 }
 
 export function Label({ tone = 'neutral', className, children }: { tone?: Tone; className?: string; children: ReactNode }) {
-  return <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-sm border px-1.5 py-px text-[11px] font-medium leading-4', tones[tone], className)}>{children}</span>
+  return <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-px text-[11px] font-medium leading-4', tones[tone], className)}>{children}</span>
 }
 
 const stageTone: Record<Stage, Tone> = { received: 'neutral', investigation: 'blue', action: 'amber', handoff: 'red', resolved: 'green' }
@@ -138,8 +138,8 @@ export function DocType({ kind }: { kind: DocKind }) {
 
 export function Avatar({ user, size = 'md' }: { user?: Employee | null; size?: 'xs' | 'sm' | 'md' | 'lg' }) {
   const s = { xs: 'size-5 text-[9px]', sm: 'size-6 text-[10px]', md: 'size-8 text-xs', lg: 'size-11 text-sm' }[size]
-  if (!user) return <span className={cn('grid shrink-0 place-items-center rounded-sm border border-dashed border-zinc-400 text-zinc-400', s)}>–</span>
-  return <span title={user.name} className={cn('grid shrink-0 place-items-center rounded-sm font-semibold', user.tone, s)}>{initials(user.name)}</span>
+  if (!user) return <span className={cn('grid shrink-0 place-items-center rounded-full border border-dashed border-zinc-300 text-zinc-400', s)}>–</span>
+  return <span title={user.name} className={cn('grid shrink-0 place-items-center rounded-full font-semibold ring-2 ring-white', avatarTone(user.id), s)}>{initials(user.name)}</span>
 }
 
 export function Person({ user, sub, size = 'sm' }: { user?: Employee | null; sub?: ReactNode; size?: 'xs' | 'sm' | 'md' }) {
@@ -162,22 +162,22 @@ export function Person({ user, sub, size = 'sm' }: { user?: Employee | null; sub
 export function Pipeline({ stage, onSelect, blockedReason }: { stage: Stage; onSelect?: (s: Stage) => void; blockedReason?: (s: Stage) => string | null }) {
   const current = stageIndex(stage)
   return (
-    <ol className="grid grid-cols-5 overflow-hidden rounded-md border border-zinc-200 bg-white">
+    <ol className="grid grid-cols-5 gap-1 rounded-xl border border-zinc-200/80 bg-white p-1 shadow-sm">
       {stages.map((st, i) => {
         const reason = blockedReason?.(st.key) ?? null
         const clickable = !!onSelect && i !== current && !reason
         const state = i < current ? 'done' : i === current ? 'current' : 'todo'
         return (
-          <li key={st.key} className={cn('relative border-r border-zinc-200 last:border-r-0', state === 'current' && 'bg-zinc-900 text-white')}>
+          <li key={st.key} className={cn('relative rounded-lg', state === 'current' && 'bg-zinc-900 text-white shadow-md', state === 'done' && 'bg-zinc-50')}>
             <button
               type="button"
               disabled={!clickable}
               onClick={() => onSelect?.(st.key)}
               title={reason ?? st.hint}
-              className={cn('flex w-full flex-col items-start px-3 py-2 text-left', clickable && 'hover:bg-zinc-50', !clickable && 'cursor-default')}
+              className={cn('flex w-full flex-col items-start rounded-lg px-3 py-2 text-left transition-colors', clickable && 'hover:bg-zinc-100', !clickable && 'cursor-default')}
             >
               <span className={cn('flex items-center gap-1.5 font-mono text-[11px]', state === 'current' ? 'text-zinc-300' : 'text-zinc-500')}>
-                {state === 'done' ? <Check className="size-3 text-green-700" /> : <span>{String(i + 1).padStart(2, '0')}</span>}
+                {state === 'done' ? <Check className="size-3 text-emerald-600" /> : <span>{String(i + 1).padStart(2, '0')}</span>}
                 STAGE
               </span>
               <span className={cn('text-[13px] font-semibold', state === 'todo' && 'text-zinc-500')}>{st.label}</span>
@@ -197,11 +197,11 @@ export function Meter({ passed, total }: { passed: number; total: number }) {
   return (
     <div>
       <div className="flex items-baseline gap-2">
-        <span className={cn('font-mono text-4xl font-semibold tabular-nums', ok ? 'text-green-700' : 'text-red-700')}>{Math.round((passed / total) * 100)}%</span>
+        <span className={cn('font-display text-5xl font-medium tabular-nums', ok ? 'text-emerald-700' : 'text-red-700')}>{Math.round((passed / total) * 100)}%</span>
         <span className="text-[13px] text-zinc-500">{passed} of {total} checks pass</span>
       </div>
       <div className="mt-3 flex gap-1">
-        {Array.from({ length: total }).map((_, i) => <span key={i} className={cn('h-2 flex-1 rounded-[1px]', i < passed ? (ok ? 'bg-green-600' : 'bg-zinc-800') : 'bg-zinc-200')} />)}
+        {Array.from({ length: total }).map((_, i) => <span key={i} className={cn('h-2 flex-1 rounded-full transition-colors', i < passed ? (ok ? 'bg-emerald-500' : 'bg-zinc-800') : 'bg-zinc-200')} />)}
       </div>
     </div>
   )
@@ -216,11 +216,11 @@ export function Tabs<T extends string>({ value, onChange, items }: { value: T; o
         <button
           key={t.key}
           onClick={() => onChange(t.key)}
-          className={cn('-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium',
-            value === t.key ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-800')}
+          className={cn('-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium transition-colors',
+            value === t.key ? 'border-blue-700 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-800')}
         >
           {t.label}
-          {t.count !== undefined && <span className="rounded-sm bg-zinc-100 px-1 font-mono text-[11px] text-zinc-600">{t.count}</span>}
+          {t.count !== undefined && <span className={cn('rounded-full px-1.5 font-mono text-[10.5px]', value === t.key ? 'bg-blue-50 text-blue-800' : 'bg-zinc-100 text-zinc-600')}>{t.count}</span>}
         </button>
       ))}
     </div>
@@ -238,14 +238,14 @@ export function Modal({ open, onClose, title, children, footer, width = 'max-w-l
   }, [open, onClose])
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-zinc-900/40 p-4" onClick={onClose}>
-      <div className={cn('w-full rounded-md border border-zinc-300 bg-white shadow-xl', width)} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3">
-          <h3 className="text-sm font-semibold text-zinc-900">{title}</h3>
-          <button onClick={onClose} className="rounded p-1 text-zinc-400 hover:bg-zinc-100"><X className="size-4" /></button>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/30 p-4 backdrop-blur-[2px]" onClick={onClose}>
+      <div className={cn('w-full animate-rise overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl', width)} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 pb-2 pt-5">
+          <h3 className="font-display text-xl font-medium text-zinc-900">{title}</h3>
+          <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"><X className="size-4" /></button>
         </div>
-        <div className="px-4 py-4">{children}</div>
-        {footer && <div className="flex justify-end gap-2 border-t border-zinc-200 bg-zinc-50 px-4 py-3">{footer}</div>}
+        <div className="px-6 py-4">{children}</div>
+        {footer && <div className="flex justify-end gap-2 border-t border-zinc-100 bg-zinc-50/70 px-6 py-3.5">{footer}</div>}
       </div>
     </div>
   )
@@ -255,13 +255,13 @@ export function Toaster() {
   const toasts = useStore((s) => s.toasts)
   const dismiss = useStore((s) => s.dismissToast)
   const icon = { info: Info, success: CheckCircle2, danger: AlertTriangle, warning: Clock }
-  const color = { info: 'text-blue-700', success: 'text-green-700', danger: 'text-red-700', warning: 'text-amber-700' }
+  const color = { info: 'text-blue-600', success: 'text-emerald-600', danger: 'text-red-600', warning: 'text-amber-600' }
   return (
-    <div className="fixed bottom-4 right-4 z-[60] flex w-80 flex-col gap-2">
+    <div className="fixed bottom-5 right-5 z-[60] flex w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col gap-2" aria-live="polite">
       {toasts.map((t) => {
         const I = icon[t.tone]
         return (
-          <div key={t.id} className="flex gap-2.5 rounded-md border border-zinc-300 bg-white p-3 shadow-lg">
+          <div key={t.id} className="flex animate-rise gap-3 rounded-xl border border-zinc-200 bg-white p-3.5 shadow-lg">
             <I className={cn('mt-0.5 size-4 shrink-0', color[t.tone])} />
             <div className="min-w-0 flex-1">
               <div className="text-[13px] font-semibold text-zinc-900">{t.title}</div>
@@ -277,7 +277,8 @@ export function Toaster() {
 
 export function Empty({ title, body, action }: { title: string; body?: string; action?: ReactNode }) {
   return (
-    <div className="px-4 py-10 text-center">
+    <div className="px-4 py-12 text-center">
+      <div className="mx-auto mb-3 grid size-10 place-items-center rounded-full bg-zinc-100 text-zinc-400"><Check className="size-4" /></div>
       <div className="text-[13px] font-medium text-zinc-700">{title}</div>
       {body && <p className="mx-auto mt-1 max-w-sm text-xs text-zinc-500">{body}</p>}
       {action && <div className="mt-3">{action}</div>}
@@ -288,14 +289,28 @@ export function Empty({ title, body, action }: { title: string; body?: string; a
 export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-zinc-700">{label}{hint && <span className="ml-1 font-normal text-zinc-400">{hint}</span>}</span>
+      <span className="mb-1.5 block text-xs font-medium text-zinc-700">{label}{hint && <span className="ml-1 font-normal text-zinc-400">{hint}</span>}</span>
       {children}
     </label>
   )
 }
 
 export const inputClass =
-  'w-full rounded border border-zinc-300 bg-white px-2.5 py-1.5 text-[13px] text-zinc-900 placeholder:text-zinc-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 disabled:bg-zinc-50 disabled:text-zinc-500'
+  'w-full rounded-lg border border-zinc-300/90 bg-white px-3 py-2 text-[13px] text-zinc-900 shadow-xs transition-[border-color,box-shadow] placeholder:text-zinc-400 hover:border-zinc-400/70 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/15 disabled:bg-zinc-50 disabled:text-zinc-500'
 
-export const thClass = 'px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-500'
-export const tdClass = 'px-3 py-2 align-middle'
+export const thClass = 'px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-zinc-500'
+export const tdClass = 'px-4 py-2.5 align-middle'
+
+/* ---------- Brand ---------- */
+
+/** The Baton mark: a baton mid-pass along a dotted relay arc. */
+export function BrandMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={cn('size-8 shrink-0', className)} aria-hidden="true">
+      <rect width="32" height="32" rx="9" fill="#3f4720" />
+      <path d="M8.5 21.5c3.2-6.4 8.6-11 15-12.6" fill="none" stroke="#b6c17f" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="0.1 3.2" />
+      <rect x="11.2" y="13.8" width="13" height="4.6" rx="2.3" transform="rotate(-38 17.7 16.1)" fill="#c08040" />
+      <circle cx="9" cy="22" r="2.2" fill="#fbfaf8" />
+    </svg>
+  )
+}

@@ -49,6 +49,7 @@ export const routeAccess = {
   any: ['employee', 'admin', 'auditor'],
   console: ['admin'],
   audit: ['admin', 'auditor'],
+  reports: ['admin', 'auditor'],
 } satisfies Record<string, OrgRole[]>
 
 /* ---------- Pipeline ---------- */

@@ -39,3 +39,15 @@ export const reasonLabel: Record<HandoffReason, string> = {
 
 export const initials = (name: string) =>
   name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
+
+/** Avatar colours from the olive / sand / brown palette, stable per person (the stored tone predates the palette). */
+const avatarTones = [
+  'bg-blue-100 text-blue-900',
+  'bg-[#ecd8bd] text-[#5a3a1c]',
+  'bg-zinc-200 text-zinc-800',
+  'bg-blue-200 text-blue-950',
+  'bg-[#e3cdb0] text-[#4a3018]',
+  'bg-[#e8e9d3] text-[#3f4720]',
+]
+export const avatarTone = (id: string) =>
+  avatarTones[[...id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % avatarTones.length]

@@ -15,6 +15,8 @@ const kindLabel: Record<NotificationKind, [string, 'neutral' | 'green' | 'amber'
   rejected: ['REJECTED', 'red'],
   force: ['REASSIGNED', 'amber'],
   assigned: ['ASSIGNED', 'blue'],
+  reminder: ['REMINDER', 'amber'],
+  escalation: ['ESCALATED', 'red'],
 }
 
 export default function Notifications() {
@@ -23,7 +25,7 @@ export default function Notifications() {
   const all = useStore((s) => s.notifications)
   const [filter, setFilter] = useState<'all' | 'unread' | 'overdue'>('all')
   const mine = all.filter((n) => n.userId === me.id).sort((a, b) => b.at.localeCompare(a.at))
-  const shown = mine.filter((n) => filter === 'all' || (filter === 'unread' ? !n.read : n.kind === 'overdue'))
+  const shown = mine.filter((n) => filter === 'all' || (filter === 'unread' ? !n.read : n.kind === 'overdue' || n.kind === 'escalation' || n.kind === 'reminder'))
 
   return (
     <>
@@ -33,7 +35,7 @@ export default function Notifications() {
           <Tabs value={filter} onChange={setFilter} items={[
             { key: 'all', label: 'All', count: mine.length },
             { key: 'unread', label: 'Unread', count: mine.filter((n) => !n.read).length },
-            { key: 'overdue', label: 'Overdue alerts', count: mine.filter((n) => n.kind === 'overdue').length },
+            { key: 'overdue', label: 'Overdue alerts', count: mine.filter((n) => n.kind === 'overdue' || n.kind === 'escalation' || n.kind === 'reminder').length },
           ]} />
         </div>
         {shown.length === 0 ? <Empty title="Nothing here" /> : (

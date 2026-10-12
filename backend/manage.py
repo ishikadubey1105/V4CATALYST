@@ -4,6 +4,7 @@ Database admin commands. Run from the backend folder:
     python manage.py status                      which database, schema revision, row counts
     python manage.py migrate                     apply pending migrations
     python manage.py seed                        load the demo data into an EMPTY database
+    python manage.py seed-history                add ~11 months of closed complaints (for monthly/yearly reports)
     python manage.py create-admin USERNAME "Full Name" EMAIL
                                                  first admin for a real deployment (prints a one-time password)
     python manage.py reset --yes                 DELETE EVERYTHING, re-create the schema and reload the demo data
@@ -20,6 +21,7 @@ from app.db import Base, SessionLocal, engine
 from app.migrate import current_revision, upgrade_db
 from app.security import hash_password, temp_password
 from app.seed import seed
+from app.seed_history import seed_history
 
 
 def _masked_url() -> str:
@@ -47,6 +49,13 @@ def seed_cmd(_: argparse.Namespace) -> None:
     upgrade_db()
     with SessionLocal() as db:
         print("demo data loaded" if seed(db) else "database already has employees — nothing loaded")
+
+
+def seed_history_cmd(_: argparse.Namespace) -> None:
+    upgrade_db()
+    with SessionLocal() as db:
+        n = seed_history(db)
+    print(f"added {n} historical complaints" if n else "history already present (or too few employees) — nothing added")
 
 
 def create_admin(args: argparse.Namespace) -> None:
@@ -83,6 +92,7 @@ def main() -> None:
     sub.add_parser("status").set_defaults(fn=status)
     sub.add_parser("migrate").set_defaults(fn=migrate)
     sub.add_parser("seed").set_defaults(fn=seed_cmd)
+    sub.add_parser("seed-history").set_defaults(fn=seed_history_cmd)
     a = sub.add_parser("create-admin")
     a.add_argument("username")
     a.add_argument("name")

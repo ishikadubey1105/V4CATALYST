@@ -11,6 +11,19 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     seed_demo: bool = True
 
+    # AI handoff assistant. Without a key the assistant falls back to a template draft built from the same data.
+    anthropic_api_key: str | None = None
+    ai_model: str = "claude-opus-5-5"
+    ai_effort: str = "low"  # low keeps the demo fast; raise to medium/high for richer drafts
+    ai_timeout_seconds: float = 60.0
+
+    # Alert system thresholds
+    alert_due_soon_hours: int = 24        # remind the assignee this long before a deadline
+    alert_escalate_after_hours: int = 48  # overdue this long -> critical, and every admin is notified
+    alert_handoff_wait_hours: int = 24    # a forward waiting this long for the receiver is flagged / reminded
+    alert_question_wait_hours: int = 48   # an unanswered question this old is flagged
+    alert_stale_case_days: int = 7        # an open case with no activity this long is flagged
+
     max_failed_logins: int = 5
     max_upload_bytes: int = 25_000_000
 

@@ -1,12 +1,36 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { AlarmClock, ArrowRight, FolderOpen, Inbox, ListChecks, Plus, Siren } from 'lucide-react'
 import { useMe, useStore } from '../store/useStore'
 import { useEmployee, useVisibleCases } from '../lib/hooks'
-import { ButtonLink, DueLabel, Empty, Label, PageHeader, Panel, PanelHeader, Person, RoleLabel, StageLabel, tdClass, thClass } from '../components/ui'
+import { ButtonLink, DueLabel, Empty, Label, Panel, PanelHeader, Person, RoleLabel, StageLabel, tdClass, thClass } from '../components/ui'
+import { useAlerts } from '../store/useAlerts'
 import { ago, cn, dueState, reasonLabel } from '../lib/utils'
+import { CountUp, TiltCard } from '../components/motion'
+
+/** One hue per kind of work, used on its stat card and on the matching panel heading. */
+const accents = {
+  olive: { card: 'from-blue-50 via-white to-white border-blue-200/70', chip: 'bg-blue-700 text-white', bar: 'bg-blue-600', num: 'text-blue-900' },
+  caramel: { card: 'from-[#f8eddd] via-white to-white border-[#ecd8bd]', chip: 'bg-[#c08040] text-white', bar: 'bg-[#c08040]', num: 'text-[#6b4320]' },
+  moss: { card: 'from-emerald-50 via-white to-white border-emerald-200/70', chip: 'bg-emerald-600 text-white', bar: 'bg-emerald-500', num: 'text-emerald-800' },
+  red: { card: 'from-red-50 via-white to-white border-red-200', chip: 'bg-red-600 text-white', bar: 'bg-red-500', num: 'text-red-700' },
+  sand: { card: 'from-zinc-100 via-white to-white border-zinc-200', chip: 'bg-zinc-700 text-white', bar: 'bg-zinc-400', num: 'text-zinc-900' },
+} as const
+type Accent = keyof typeof accents
+
+function Chip({ icon: Icon, accent }: { icon: typeof Inbox; accent: Accent }) {
+  return <span className={cn('grid size-7 shrink-0 place-items-center rounded-lg shadow-sm', accents[accent].chip)}><Icon className="size-3.5" strokeWidth={2} /></span>
+}
+const titled = (icon: typeof Inbox, accent: Accent, text: string) => (
+  <span className="flex items-center gap-2.5"><Chip icon={icon} accent={accent} />{text}</span>
+)
 
 export default function Dashboard() {
   const me = useMe()!
   const navigate = useNavigate()
+  const { hash } = useLocation()
+  // stat cards link to sections on this page (#incoming, #tasks): scroll to them
+  useEffect(() => { if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, [hash])
   const { tasks, handoffs, cases } = useStore()
   const emp = useEmployee()
   const visible = useVisibleCases()
@@ -22,33 +46,74 @@ export default function Dashboard() {
   const involved = visible.filter((c) => c.role !== 'admin' && c.role !== 'auditor')
   const list = me.orgRole === 'employee' ? involved : visible
 
-  const counters: [string, number, string?][] = [
-    ['Cases I own', owned.length],
-    ['Forwarded to me', incoming.length, incoming.length ? 'text-red-700' : undefined],
-    ['My open tasks', myTasks.length],
-    ['Overdue (mine or my cases)', overdueOnMine.length, overdueOnMine.length ? 'text-red-700' : undefined],
+  const alertCounts = useAlerts((st) => st.counts)
+  const urgentAlerts = alertCounts.critical + alertCounts.high
+  const counters: { label: string; n: number; icon: typeof Inbox; hint: string; accent: Accent; to: string }[] = [
+    { label: 'Cases I own', n: owned.length, icon: FolderOpen, hint: 'Open, not yet resolved', accent: 'olive', to: '/cases' },
+    { label: 'Forwarded to me', n: incoming.length, icon: Inbox, hint: 'Waiting for your decision', accent: 'caramel', to: '/dashboard#incoming' },
+    { label: 'My open tasks', n: myTasks.length, icon: ListChecks, hint: 'Across all cases', accent: 'moss', to: '/dashboard#tasks' },
+    { label: 'Overdue', n: overdueOnMine.length, icon: AlarmClock, hint: overdueOnMine.length ? 'Needs attention today' : 'Mine or on my cases', accent: overdueOnMine.length ? 'red' : 'sand', to: '/alerts' },
   ]
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const summary = incoming.length || overdueOnMine.length
+    ? [incoming.length && `${incoming.length} handover${incoming.length > 1 ? 's' : ''} waiting for you`, overdueOnMine.length && `${overdueOnMine.length} overdue task${overdueOnMine.length > 1 ? 's' : ''}`].filter(Boolean).join(' · ')
+    : 'Nothing urgent — a calm day so far.'
 
   return (
     <>
-      <PageHeader
-        title="My work"
-        sub={<>{me.name} · {me.title}, {me.department}</>}
-        actions={me.orgRole !== 'auditor' && <ButtonLink to="/cases?new=1">Register complaint</ButtonLink>}
-      />
-
-      <div className="mb-5 grid grid-cols-2 divide-x divide-y divide-zinc-200 rounded-md border border-zinc-200 bg-white md:grid-cols-4 md:divide-y-0">
-        {counters.map(([label, n, color]) => (
-          <div key={label} className="px-4 py-3">
-            <div className={cn('font-mono text-2xl font-semibold tabular-nums', color)}>{n}</div>
-            <div className="text-xs text-zinc-500">{label}</div>
+      <section className="grain relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900 via-blue-900 to-blue-800 px-7 py-8 text-zinc-50 shadow-md sm:px-10">
+        {/* quiet line drawing of the relay: two stations, the arc, the baton */}
+        <svg aria-hidden="true" viewBox="0 0 420 180" className="pointer-events-none absolute bottom-2 right-6 hidden h-[180px] w-[420px] opacity-90 lg:block">
+          <path d="M40 150 C 140 20, 280 20, 380 150" fill="none" stroke="#b6c17f" strokeOpacity=".55" strokeWidth="1.5" strokeDasharray="0.5 7" strokeLinecap="round" />
+          <ellipse cx="40" cy="156" rx="26" ry="7" fill="none" stroke="#c08040" strokeWidth="1.5" />
+          <ellipse cx="380" cy="156" rx="26" ry="7" fill="none" stroke="#b6c17f" strokeOpacity=".8" strokeWidth="1.5" />
+          <rect x="196" y="44" width="46" height="13" rx="6.5" transform="rotate(14 219 50)" fill="#c08040" />
+          <rect x="206" y="44" width="5" height="13" transform="rotate(14 219 50)" fill="#7a4b22" opacity=".6" />
+          <rect x="228" y="44" width="5" height="13" transform="rotate(14 219 50)" fill="#7a4b22" opacity=".6" />
+        </svg>
+        <div className="relative max-w-2xl">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-baton-soft/90">{today}</div>
+          <h1 className="mt-2 font-display text-[34px] font-normal leading-tight sm:text-[40px]">{greeting}, {me.name.split(' ')[0]}</h1>
+          <p className="mt-2 text-[14px] text-blue-100/80">{summary}</p>
+          <div className="mt-6 flex flex-wrap items-center gap-2.5">
+            {me.orgRole !== 'auditor' && (
+              <Link to="/cases?new=1" className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-[13px] font-medium text-blue-900 shadow-sm transition hover:bg-blue-50 active:translate-y-px">
+                <Plus className="size-4" />Register complaint
+              </Link>
+            )}
+            <Link to="/alerts" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/20 px-4 text-[13px] font-medium text-zinc-50 transition hover:bg-white/10">
+              <Siren className="size-4" />{urgentAlerts ? `${urgentAlerts} alert${urgentAlerts > 1 ? 's' : ''} need attention` : 'View alerts'}<ArrowRight className="size-3.5 opacity-70" />
+            </Link>
+            <span className="ml-1 text-[12px] text-blue-100/60">{me.title} · {me.department}</span>
           </div>
-        ))}
+        </div>
+      </section>
+
+      <div className="mb-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {counters.map(({ label, n, icon: Icon, hint, accent, to }) => {
+          const a = accents[accent]
+          return (
+            <TiltCard key={label} className={cn('rounded-2xl border bg-gradient-to-br shadow-sm', a.card)}>
+              <Link to={to} className="block rounded-2xl p-5">
+                <div className="flex items-start justify-between">
+                  <span className={cn('grid size-10 place-items-center rounded-xl shadow-sm', a.chip)}><Icon className="size-[18px]" strokeWidth={1.9} /></span>
+                  <ArrowRight className="size-4 text-zinc-300" />
+                </div>
+                <div className={cn('mt-4 font-display text-[38px] font-medium leading-none', a.num)}><CountUp value={n} /></div>
+                <div className="mt-2 text-[13px] font-medium text-zinc-800">{label}</div>
+                <div className="mt-0.5 text-[11.5px] text-zinc-500">{hint}</div>
+                <div className={cn('mt-4 h-1 w-10 rounded-full', a.bar)} />
+              </Link>
+            </TiltCard>
+          )
+        })}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <Panel>
-          <PanelHeader title="Forwarded to me — waiting for my decision" sub="Acknowledge each section, ask questions, then accept or reject" />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Panel id="incoming">
+          <PanelHeader title={titled(Inbox, 'caramel', 'Forwarded to me — waiting for my decision')} sub="Acknowledge each section, ask questions, then accept or reject" />
           {incoming.length === 0 ? <Empty title="Nothing waiting" body="When a colleague forwards a case to you it appears here." /> : (
             <table className="w-full text-[13px]">
               <thead className="bg-zinc-50"><tr><th className={thClass}>Case</th><th className={thClass}>From</th><th className={thClass}>Reason</th><th className={thClass}>Ack.</th><th /></tr></thead>
@@ -70,7 +135,7 @@ export default function Dashboard() {
             </table>
           )}
           {outgoing.length > 0 && (
-            <div className="border-t border-zinc-200 bg-zinc-50 px-4 py-2 text-xs text-zinc-600">
+            <div className="border-t border-zinc-100 bg-zinc-50/70 px-5 py-2.5 text-xs text-zinc-600">
               {outgoing.map((h) => (
                 <div key={h.id}>You forwarded <Link className="font-mono text-blue-700 hover:underline" to={`/handoffs/${h.id}`}>{caseOf(h.caseId).code}</Link> to {emp(h.toId)?.name} — awaiting their decision.</div>
               ))}
@@ -78,8 +143,8 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        <Panel>
-          <PanelHeader title="My open tasks" sub="Tasks assigned to me on any case, earliest deadline first" />
+        <Panel id="tasks">
+          <PanelHeader title={titled(ListChecks, 'moss', 'My open tasks')} sub="Tasks assigned to me on any case, earliest deadline first" />
           {myTasks.length === 0 ? <Empty title="No open tasks" /> : (
             <table className="w-full text-[13px]">
               <thead className="bg-zinc-50"><tr><th className={thClass}>Task</th><th className={thClass}>Case</th><th className={thClass}>Due</th></tr></thead>
@@ -97,9 +162,9 @@ export default function Dashboard() {
         </Panel>
       </div>
 
-      <Panel className="mt-5">
+      <Panel className="mt-6">
         <PanelHeader
-          title={me.orgRole === 'employee' ? 'Cases I am involved in' : 'All cases'}
+          title={titled(FolderOpen, 'olive', me.orgRole === 'employee' ? 'Cases I am involved in' : 'All cases')}
           sub="Your role is worked out from each case's records — owner, incoming receiver, task assignee or previous owner"
           action={<Link to="/cases" className="text-xs text-blue-700 hover:underline">Open case register</Link>}
         />
@@ -124,8 +189,8 @@ export default function Dashboard() {
       </Panel>
 
       {overdueOnMine.length > 0 && (
-        <Panel className="mt-5 border-red-200">
-          <PanelHeader title={<span className="text-red-800">Overdue actions</span>} sub="The deadline watcher has notified the assignee and the case owner" />
+        <Panel className="mt-6 border-red-200/80">
+          <PanelHeader title={titled(AlarmClock, 'red', 'Overdue actions')} sub="The deadline watcher has notified the assignee and the case owner" />
           <ul className="divide-y divide-zinc-100">
             {overdueOnMine.map((t) => (
               <li key={t.id}>
