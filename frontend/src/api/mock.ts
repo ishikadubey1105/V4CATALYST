@@ -126,6 +126,7 @@ export const mockApi: Api = {
   async aiHandoffBrief() { throw new ApiError(501, 'AI_UNAVAILABLE', 'The AI assistant runs on the backend. Start the app with python run_app.py.') },
 
   async alerts() { return { alerts: [], counts: { critical: 0, high: 0, warning: 0, info: 0 } } },
+  async reportPdfBlob(): Promise<Blob> { throw new ApiError(501, 'REPORTS_UNAVAILABLE', 'Reports run on the backend. Start the app with python run_app.py.') },
   async reportPdf() { throw new ApiError(501, 'REPORTS_UNAVAILABLE', 'Reports run on the backend. Start the app with python run_app.py.') },
   async report() { throw new ApiError(501, 'REPORTS_UNAVAILABLE', 'Reports run on the backend. Start the app with python run_app.py.') },
 

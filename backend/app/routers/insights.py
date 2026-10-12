@@ -57,4 +57,4 @@ def report_pdf(user: CurrentUser, db: Db, period: Literal["month", "year"] = Per
     db.commit()
     stamp = f"{p.year}" if p.kind == "year" else f"{p.year}-{p.month:02d}"
     return Response(pdf, media_type="application/pdf",
-                    headers={"Content-Disposition": f'attachment; filename="baton-report-{stamp}.pdf"'})
+                    headers={"Content-Disposition": f'attachment; filename="thread-report-{stamp}.pdf"'})

@@ -1,4 +1,4 @@
-# Baton — complaint handoff console (frontend)
+# Thread — complaint handoff console (frontend)
 
 Interactive prototype. In the default **mock** mode an in-browser backend (`src/api/mock.ts` over a
 persisted Zustand store) enforces the same rules the real server will. Every screen talks only to

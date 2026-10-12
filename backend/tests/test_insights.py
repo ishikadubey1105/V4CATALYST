@@ -136,7 +136,7 @@ def test_year_report_with_history(client, login):
     total_received = sum(b["received"] for b in r["trend"])
     assert total_received == r["kpis"]["received"] and r["kpis"]["resolved"] > 0
     assert r["kpis"]["avgResolutionDays"] is not None and r["kpis"]["acceptanceRate"] is not None
-    assert r["previous"]["received"] >= 0 and r["period"]["previousLabel"] == str(now.year - 1)
+    assert r["previous"]["received"] >= 0 and r["period"]["previousLabel"].startswith(str(now.year - 1))  # like-for-like: "2025 to 12 Oct"
 
 
 def test_report_pdf(client, login):
@@ -144,9 +144,9 @@ def test_report_pdf(client, login):
     r = client.get("/api/reports/summary.pdf", params={"period": "month"}, headers=admin)
     assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
     assert r.content.startswith(b"%PDF") and len(r.content) > 10_000
-    assert 'filename="baton-report-' in r.headers["content-disposition"]
+    assert 'filename="thread-report-' in r.headers["content-disposition"]
     year = client.get("/api/reports/summary.pdf", params={"period": "year", "year": 2025}, headers=admin)
-    assert year.status_code == 200 and 'baton-report-2025.pdf' in year.headers["content-disposition"]
+    assert year.status_code == 200 and 'thread-report-2025.pdf' in year.headers["content-disposition"]
     assert client.get("/api/reports/summary.pdf", headers=login("asha.rao")).json()["code"] == "FORBIDDEN"
     audit = client.get("/api/sync", headers=admin).json()["audit"]
     assert sum(a["action"] == "report.exported" for a in audit) == 2

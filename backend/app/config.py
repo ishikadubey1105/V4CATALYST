@@ -12,9 +12,9 @@ class Settings(BaseSettings):
     seed_demo: bool = True
 
     # AI handoff assistant. Without a key the assistant falls back to a template draft built from the same data.
-    anthropic_api_key: str | None = None
-    ai_model: str = "claude-opus-5-5"
-    ai_effort: str = "low"  # low keeps the demo fast; raise to medium/high for richer drafts
+    groq_api_key: str | None = None
+    ai_model: str = "openai/gpt-oss-120b"  # any Groq chat model; gpt-oss / qwen get strict JSON-schema output
+    ai_effort: str = "low"  # reasoning effort for gpt-oss models: low keeps the demo fast; medium/high for richer drafts
     ai_timeout_seconds: float = 60.0
 
     # Alert system thresholds

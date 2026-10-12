@@ -5,7 +5,7 @@ Monthly / yearly management report, built from the records and the append-only a
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from statistics import mean
+from statistics import mean, median
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -93,6 +93,8 @@ def _counts(f: Facts, p: Period) -> dict:
         "resolved": len(resolved),
         "openAtEnd": len(open_at_end),
         "avgResolutionDays": round(mean(res_days), 1) if res_days else None,
+        "medianResolutionDays": round(median(res_days), 1) if res_days else None,
+        "resolvedWithin14d": round(100 * sum(d <= 14 for d in res_days) / len(res_days)) if res_days else None,
         "handoffsSubmitted": sum(_in(h.created_at, p) for h in f.handoffs),
         "handoffsAccepted": len(accepted),
         "handoffsRejected": len(rejected),
@@ -109,7 +111,15 @@ def build_report(db: Session, p: Period) -> dict:
     f = Facts(db)
     now = m.now()
     kpis = _counts(f, p)
-    prev = _counts(f, p.previous())
+    # Like-for-like comparison: a period still in progress is compared with the same stretch of the previous one
+    # (2026 to 12 Oct vs 2025 to 12 Oct), not with the whole previous period.
+    prev_p = p.previous()
+    prev_label = prev_p.label
+    if p.start <= now < p.end:
+        cut = min(prev_p.end, prev_p.start + (now - p.start))
+        prev_p = Period(prev_p.kind, prev_p.year, prev_p.month, prev_p.start, cut)
+        prev_label = f"{prev_p.year} to {cut:%d %b}" if p.kind == "year" else f"{MONTHS[prev_p.month - 1]} 1–{cut.day}"
+    prev = _counts(f, prev_p)
     received = [c for c in f.cases.values() if _in(c.received_at, p)]
 
     trend = []
@@ -120,6 +130,9 @@ def build_report(db: Session, p: Period) -> dict:
             "received": sum(_in(c.received_at, b) for c in f.cases.values()),
             "resolved": sum(_in(at, b) for at in f.resolved_at.values()),
             "handoffs": sum(_in(h.created_at, b) for h in f.handoffs),
+            # backlog: received before the bucket ends and not resolved by then
+            "open": sum(c.received_at < end and not (c.id in f.resolved_at and f.resolved_at[c.id] < end) for c in f.cases.values())
+            if start <= now else None,
         })
 
     def breakdown(attr: str) -> list[dict]:
@@ -144,7 +157,7 @@ def build_report(db: Session, p: Period) -> dict:
 
     return {
         "period": {"kind": p.kind, "year": p.year, "month": p.month, "label": p.label,
-                   "start": iso(p.start), "end": iso(p.end), "previousLabel": p.previous().label},
+                   "start": iso(p.start), "end": iso(p.end), "previousLabel": prev_label, "inProgress": p.start <= now < p.end},
         "generatedAt": iso(now),
         "kpis": kpis,
         "previous": prev,
@@ -154,16 +167,18 @@ def build_report(db: Session, p: Period) -> dict:
         "byChannel": breakdown("channel"),
         "byStage": [{"key": k, "count": n} for k, n in Counter(c.stage for c in received).most_common()],
         "people": people,
-        "summary": _narrative(p, kpis, prev, received),
+        "summary": _narrative(p, prev_label, kpis, prev, received),
     }
 
 
-def _narrative(p: Period, k: dict, prev: dict, received: list[m.Case]) -> str:
+def _narrative(p: Period, prev_label: str, k: dict, prev: dict, received: list[m.Case]) -> str:
     def change(cur: int, old: int) -> str:
         if old == 0:
             return "" if cur == 0 else " (none the period before)"
+        if old < 5:  # a % change on a tiny base misleads; give the absolute change
+            return f" ({'+' if cur >= old else '–'}{abs(cur - old)} vs {prev_label})"
         pct = round(100 * (cur - old) / old)
-        return f" ({'+' if pct >= 0 else ''}{pct}% vs {p.previous().label})"
+        return f" ({'+' if pct >= 0 else '–'}{abs(pct)}% vs {prev_label})"
 
     parts = [f"In {p.label}, {k['received']} complaint{'s were' if k['received'] != 1 else ' was'} received{change(k['received'], prev['received'])}"
              f" and {k['resolved']} resolved{change(k['resolved'], prev['resolved'])}."]
@@ -179,5 +194,6 @@ def _narrative(p: Period, k: dict, prev: dict, received: list[m.Case]) -> str:
         missed = f"{k['overdueEvents']} task deadline{'s were' if k['overdueEvents'] != 1 else ' was'} missed"
         escalated = f" and {k['escalations']} escalated to admins" if k["escalations"] else ""
         parts.append(missed + escalated + ".")
-    parts.append(f"{k['openAtEnd']} complaint{'s remain' if k['openAtEnd'] != 1 else ' remains'} open at the end of the period.")
+    when = "at the time of writing" if p.start <= m.now() < p.end else "at the end of the period"
+    parts.append(f"{k['openAtEnd']} complaint{'s remain' if k['openAtEnd'] != 1 else ' remains'} open {when}.")
     return " ".join(parts)

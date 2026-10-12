@@ -53,15 +53,15 @@ export interface Alert { id: string; kind: AlertKind; severity: AlertSeverity; t
 export interface AlertsRes { alerts: Alert[]; counts: Record<AlertSeverity, number> }
 
 export interface ReportKpis {
-  received: number; resolved: number; openAtEnd: number; avgResolutionDays: number | null
+  received: number; resolved: number; openAtEnd: number; avgResolutionDays: number | null; medianResolutionDays: number | null; resolvedWithin14d: number | null
   handoffsSubmitted: number; handoffsAccepted: number; handoffsRejected: number; acceptanceRate: number | null; avgAcceptHours: number | null
   forcedReassignments: number; tasksCompleted: number; overdueEvents: number; escalations: number
 }
-export interface ReportBucket { label: string; received: number; resolved: number; handoffs: number }
+export interface ReportBucket { label: string; received: number; resolved: number; handoffs: number; open: number | null }
 export interface ReportCount { key: string; count: number }
 export interface ReportPerson { employeeId: string; name: string; department: string; openCases: number; resolved: number; handoffsSent: number; handoffsAccepted: number; tasksCompleted: number; overdueNow: number }
 export interface Report {
-  period: { kind: 'month' | 'year'; year: number; month: number | null; label: string; start: string; end: string; previousLabel: string }
+  period: { kind: 'month' | 'year'; year: number; month: number | null; label: string; start: string; end: string; previousLabel: string; inProgress: boolean }
   generatedAt: string
   kpis: ReportKpis
   previous: ReportKpis
@@ -72,8 +72,8 @@ export interface Report {
 }
 export interface ReportQuery { period: 'month' | 'year'; year: number; month?: number }
 
-/** AI assistant output. `source` says whether Claude wrote it or the built-in template did (no key / call failed). */
-export interface AiResult { text: string; urgent: string[]; risks: string[]; gaps: string[]; source: 'claude' | 'template'; model?: string; note?: string }
+/** AI assistant output. `source` says whether the LLM (on Groq) wrote it or the built-in template did (no key / call failed). */
+export interface AiResult { text: string; urgent: string[]; risks: string[]; gaps: string[]; source: 'groq' | 'template'; model?: string; note?: string }
 
 const ep = <Req, Res>(e: Omit<Endpoint<Req, Res>, '_types'>): Endpoint<Req, Res> => e
 

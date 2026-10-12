@@ -3,10 +3,10 @@ import type { ReactNode } from 'react'
 import type { AiResult } from '../api/contracts'
 import { Label } from './ui'
 
-/** Says who wrote the text: Claude, or the built-in template (no API key / call failed). */
+/** Says who wrote the text: the AI (on Groq), or the built-in template (no API key / call failed). */
 export function AiSource({ result }: { result: AiResult }) {
-  return result.source === 'claude'
-    ? <Label tone="blue"><Sparkles className="size-3" />Written by Claude</Label>
+  return result.source === 'groq'
+    ? <Label tone="blue"><Sparkles className="size-3" />Written by AI{result.model ? ` · ${result.model.split('/').pop()}` : ''}</Label>
     : <Label tone="neutral" className="whitespace-normal">{result.note ?? 'Template draft'}</Label>
 }
 

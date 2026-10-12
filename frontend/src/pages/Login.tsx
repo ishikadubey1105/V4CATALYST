@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowRight, Check, Eye, EyeOff, Lock, ShieldCheck, User 
 import { API_MODE, api } from '../api'
 import { BrandMark, inputClass } from '../components/ui'
 import { webglAvailable } from '../components/motion'
+import { MintLagoonBackground } from '../components/MintLagoonBackground'
 import { credentials, employees } from '../data/mock'
 import { avatarTone, cn, initials, orgRoleLabel } from '../lib/utils'
 
@@ -106,18 +107,18 @@ export default function Login() {
         <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-24 size-[360px] rounded-full border border-white/[0.06]" />
         <div className="flex items-center gap-2.5 px-12 pt-10">
           <BrandMark className="size-9 ring-1 ring-white/10 rounded-[10px]" />
-          <span className="font-display text-[22px] font-medium tracking-tight">Baton</span>
+          <span className="font-display text-[22px] font-medium tracking-tight">Thread</span>
         </div>
 
         <div className="relative z-10 px-12 pt-12 xl:px-16">
           <div className="max-w-[520px] animate-rise">
             <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-baton">Complaint handoffs</div>
             <h1 className="font-display text-[44px] font-normal leading-[1.08] xl:text-[52px]">
-              Every complaint, handed over <em className="font-display italic text-baton-soft">whole</em>.
+              No complaint left <em className="font-display italic text-baton-soft">hanging</em>.
             </h1>
             <p className="mt-5 max-w-[440px] text-[15px] leading-relaxed text-blue-100/80">
-              When a case changes hands, Baton makes sure the context, decisions, deadlines and open questions travel with it —
-              so the customer never has to explain twice.
+              Thread keeps every case's story in one piece as it changes hands — context, decisions, deadlines and open
+              questions travel together, so the customer never has to explain twice.
             </p>
           </div>
         </div>
@@ -141,10 +142,10 @@ export default function Login() {
       </aside>
 
       {/* Sign-in */}
-      <main className="flex min-w-0 flex-col px-6 py-10 sm:px-10">
+      <MintLagoonBackground role="main" className="flex min-w-0 flex-col px-6 py-10 sm:px-10">
         <div className="flex items-center gap-2.5 lg:hidden">
           <BrandMark className="size-8" />
-          <span className="font-display text-xl font-medium">Baton</span>
+          <span className="font-display text-xl font-medium">Thread</span>
         </div>
 
         <div className="mx-auto flex w-full max-w-[380px] flex-1 flex-col justify-center py-10">
@@ -196,7 +197,7 @@ export default function Login() {
 
           {SHOW_DEMO && (
             <div className="mt-9">
-              <div className="flex items-center gap-3 text-[11.5px] text-zinc-400">
+              <div className="flex items-center gap-3 text-[11.5px] text-zinc-600">
                 <span className="h-px flex-1 bg-zinc-200" />Or explore with a demo account<span className="h-px flex-1 bg-zinc-200" />
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2">
@@ -216,11 +217,11 @@ export default function Login() {
           )}
         </div>
 
-        <div className="mx-auto flex w-full max-w-[380px] items-center justify-between text-[11.5px] text-zinc-400">
+        <div className="mx-auto flex w-full max-w-[380px] items-center justify-between text-[11.5px] text-zinc-600">
           <span className="flex items-center gap-1.5"><ShieldCheck className="size-3.5" />5 failed attempts lock the account</span>
           <span className="font-mono" title="VITE_API_MODE">{API_MODE === 'http' ? 'live' : 'demo'} mode</span>
         </div>
-      </main>
+      </MintLagoonBackground>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 """
-Baton API — implements frontend/src/api/contracts.ts. Every route lives under /api.
+Thread API — implements frontend/src/api/contracts.ts. Every route lives under /api.
 
     uvicorn app.main:app --reload --port 8080
 """
@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
             await watcher
 
 
-app = FastAPI(title="Baton API", version="1.0.0", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json")
+app = FastAPI(title="Thread API", version="1.0.0", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json")
 
 app.add_middleware(
     CORSMiddleware,
