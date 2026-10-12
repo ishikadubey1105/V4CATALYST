@@ -8,6 +8,7 @@ import { API_MODE, api } from '../api'
 import { routeAccess } from '../lib/permissions'
 import { cn, orgRoleLabel } from '../lib/utils'
 import { Avatar, BrandMark } from './ui'
+import { MintLagoonBackground } from './MintLagoonBackground'
 import type { OrgRole } from '../lib/types'
 
 type NavItem = { to: string; label: string; icon: typeof Bell; roles: OrgRole[] }
@@ -87,12 +88,12 @@ export function Layout() {
   const signOut = async () => { await api.logout(); navigate('/login') }
 
   return (
-    <div className="flex min-h-screen">
+    <MintLagoonBackground className="flex min-h-screen overflow-clip">
       <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-zinc-200/80 bg-zinc-100/60 lg:flex print:hidden">
         <Link to="/dashboard" className="flex h-16 items-center gap-2.5 px-5">
           <BrandMark className="size-8" />
           <span className="leading-none">
-            <span className="block font-display text-[19px] font-medium tracking-tight text-zinc-900">Baton</span>
+            <span className="block font-display text-[19px] font-medium tracking-tight text-zinc-900">Thread</span>
             <span className="block text-[10.5px] tracking-wide text-zinc-500">Complaint handoffs</span>
           </span>
         </Link>
@@ -108,7 +109,7 @@ export function Layout() {
                     <NavLink
                       key={to}
                       to={to}
-                      className={({ isActive }) => cn('group relative flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors',
+                      className={({ isActive }) => cn('group relative flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30',
                         isActive ? 'font-medium text-zinc-900' : 'text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900')}
                     >
                       {({ isActive }) => (
@@ -150,7 +151,7 @@ export function Layout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-zinc-200/70 bg-paper/80 px-4 backdrop-blur-md sm:px-8 print:hidden">
-          <Link to="/dashboard" className="lg:hidden" aria-label="Baton home"><BrandMark className="size-7" /></Link>
+          <Link to="/dashboard" className="lg:hidden" aria-label="Thread home"><BrandMark className="size-7" /></Link>
           <nav className="flex gap-1 overflow-x-auto lg:hidden" aria-label="Main">
             {flat.map(({ to, label }) => (
               <NavLink key={to} to={to} className={({ isActive }) => cn('whitespace-nowrap rounded-md px-2.5 py-1 text-xs', isActive ? 'bg-white font-medium shadow-sm' : 'text-zinc-600')}>{label}</NavLink>
@@ -189,7 +190,8 @@ export function Layout() {
           </div>
         </header>
 
-        {alertCounts.critical > 0 && (
+        {/* the dashboard surfaces critical alerts itself, so the banner would repeat them */}
+        {alertCounts.critical > 0 && location.pathname !== '/dashboard' && (
           <div className="px-4 pt-4 sm:px-8 print:hidden">
             <Link to="/alerts" role="alert" className="mx-auto flex max-w-[1360px] items-center gap-3 rounded-xl border border-red-200/80 bg-red-50/80 px-4 py-2.5 text-[13px] text-red-900 transition hover:bg-red-50">
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-red-100"><OctagonAlert className="size-4 text-red-600" /></span>
@@ -214,6 +216,6 @@ export function Layout() {
           </AnimatePresence>
         </main>
       </div>
-    </div>
+    </MintLagoonBackground>
   )
 }

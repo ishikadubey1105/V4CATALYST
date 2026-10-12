@@ -1,156 +1,163 @@
-import { useEffect } from 'react'
+import { Fragment, useEffect, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { AlarmClock, ArrowRight, FolderOpen, Inbox, ListChecks, Plus, Siren } from 'lucide-react'
+import { ArrowRight, Plus } from 'lucide-react'
 import { useMe, useStore } from '../store/useStore'
 import { useEmployee, useVisibleCases } from '../lib/hooks'
-import { ButtonLink, DueLabel, Empty, Label, Panel, PanelHeader, Person, RoleLabel, StageLabel, tdClass, thClass } from '../components/ui'
+import { ButtonLink, DueLabel, Empty, Panel, PanelHeader, Person, RoleLabel, StageLabel, tdClass, thClass } from '../components/ui'
 import { useAlerts } from '../store/useAlerts'
+import type { AlertSeverity } from '../api/contracts'
 import { ago, cn, dueState, reasonLabel } from '../lib/utils'
-import { CountUp, TiltCard } from '../components/motion'
 
-/** One hue per kind of work, used on its stat card and on the matching panel heading. */
-const accents = {
-  olive: { card: 'from-blue-50 via-white to-white border-blue-200/70', chip: 'bg-blue-700 text-white', bar: 'bg-blue-600', num: 'text-blue-900' },
-  caramel: { card: 'from-[#f8eddd] via-white to-white border-[#ecd8bd]', chip: 'bg-[#c08040] text-white', bar: 'bg-[#c08040]', num: 'text-[#6b4320]' },
-  moss: { card: 'from-emerald-50 via-white to-white border-emerald-200/70', chip: 'bg-emerald-600 text-white', bar: 'bg-emerald-500', num: 'text-emerald-800' },
-  red: { card: 'from-red-50 via-white to-white border-red-200', chip: 'bg-red-600 text-white', bar: 'bg-red-500', num: 'text-red-700' },
-  sand: { card: 'from-zinc-100 via-white to-white border-zinc-200', chip: 'bg-zinc-700 text-white', bar: 'bg-zinc-400', num: 'text-zinc-900' },
-} as const
-type Accent = keyof typeof accents
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
-function Chip({ icon: Icon, accent }: { icon: typeof Inbox; accent: Accent }) {
-  return <span className={cn('grid size-7 shrink-0 place-items-center rounded-lg shadow-sm', accents[accent].chip)}><Icon className="size-3.5" strokeWidth={2} /></span>
+const severityDot: Record<AlertSeverity, string> = {
+  critical: 'bg-red-600', high: 'bg-red-400', warning: 'bg-amber-500', info: 'bg-zinc-300',
 }
-const titled = (icon: typeof Inbox, accent: Accent, text: string) => (
-  <span className="flex items-center gap-2.5"><Chip icon={icon} accent={accent} />{text}</span>
-)
+
+/** One number in the stats strip. Quiet by default; red only when it means something is wrong. */
+function Stat({ label, value, note, to, alarm }: { label: string; value: number; note: ReactNode; to: string; alarm?: boolean }) {
+  return (
+    <Link to={to} className="group block bg-white px-5 py-4 transition-colors hover:bg-zinc-50">
+      <div className="flex items-center justify-between text-[12px] text-zinc-500">
+        {label}
+        <ArrowRight className="size-3.5 -translate-x-1 text-zinc-400 opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100" />
+      </div>
+      <div className={cn('mt-1 font-display text-[30px] leading-none tabular-nums', alarm ? 'text-red-700' : 'text-zinc-900')}>{value}</div>
+      <div className="mt-1.5 text-[12px] text-zinc-500">{note}</div>
+    </Link>
+  )
+}
 
 export default function Dashboard() {
   const me = useMe()!
   const navigate = useNavigate()
   const { hash } = useLocation()
-  // stat cards link to sections on this page (#incoming, #tasks): scroll to them
   useEffect(() => { if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, [hash])
   const { tasks, handoffs, cases } = useStore()
   const emp = useEmployee()
   const visible = useVisibleCases()
+  const alerts = useAlerts((s) => s.alerts)
   const caseOf = (id: string) => cases.find((c) => c.id === id)!
 
+  const staff = me.orgRole === 'employee'
   const incoming = handoffs.filter((h) => h.status === 'submitted' && h.toId === me.id)
   const outgoing = handoffs.filter((h) => h.status === 'submitted' && h.fromId === me.id)
-  const myTasks = tasks
-    .filter((t) => !t.done && t.ownerId === me.id)
-    .sort((a, b) => (a.due ?? '9').localeCompare(b.due ?? '9'))
+  const inFlight = staff ? [...incoming, ...outgoing] : handoffs.filter((h) => h.status === 'submitted')
+  const myTasks = tasks.filter((t) => !t.done && t.ownerId === me.id).sort((a, b) => (a.due ?? '9').localeCompare(b.due ?? '9'))
   const owned = visible.filter((c) => c.role === 'owner' && c.stage !== 'resolved')
-  const overdueOnMine = tasks.filter((t) => dueState(t) === 'overdue' && (t.ownerId === me.id || caseOf(t.caseId)?.ownerId === me.id))
-  const involved = visible.filter((c) => c.role !== 'admin' && c.role !== 'auditor')
-  const list = me.orgRole === 'employee' ? involved : visible
+  const overdueMine = tasks.filter((t) => dueState(t) === 'overdue' && (t.ownerId === me.id || caseOf(t.caseId)?.ownerId === me.id))
+  const overdueAll = tasks.filter((t) => dueState(t) === 'overdue')
+  const open = cases.filter((c) => c.stage !== 'resolved')
+  const monthAgo = Date.now() - 30 * 86_400_000
+  const resolvedRecently = cases.filter((c) => c.stage === 'resolved' && Date.parse(c.updatedAt) > monthAgo)
+  const weekAhead = Date.now() + 7 * 86_400_000
+  const dueThisWeek = myTasks.filter((t) => t.due && Date.parse(t.due) < weekAhead && dueState(t) !== 'overdue')
+  const list = staff ? visible.filter((c) => c.role !== 'admin' && c.role !== 'auditor') : visible
+  const attention = alerts.filter((a) => a.severity !== 'info').slice(0, 6)
 
-  const alertCounts = useAlerts((st) => st.counts)
-  const urgentAlerts = alertCounts.critical + alertCounts.high
-  const counters: { label: string; n: number; icon: typeof Inbox; hint: string; accent: Accent; to: string }[] = [
-    { label: 'Cases I own', n: owned.length, icon: FolderOpen, hint: 'Open, not yet resolved', accent: 'olive', to: '/cases' },
-    { label: 'Forwarded to me', n: incoming.length, icon: Inbox, hint: 'Waiting for your decision', accent: 'caramel', to: '/dashboard#incoming' },
-    { label: 'My open tasks', n: myTasks.length, icon: ListChecks, hint: 'Across all cases', accent: 'moss', to: '/dashboard#tasks' },
-    { label: 'Overdue', n: overdueOnMine.length, icon: AlarmClock, hint: overdueOnMine.length ? 'Needs attention today' : 'Mine or on my cases', accent: overdueOnMine.length ? 'red' : 'sand', to: '/alerts' },
-  ]
-  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
+  // One factual sentence, written from the data — never "calm" when something is on fire.
+  const critical = alerts.filter((a) => a.severity === 'critical')
+  const parts: ReactNode[] = []
+  if (critical.length) parts.push(<>{plural(critical.length, 'critical alert')} on <Link className="font-mono text-red-700 underline-offset-2 hover:underline" to={critical[0].link}>{critical[0].caseCode}</Link></>)
+  if (incoming.length) parts.push(<>{plural(incoming.length, 'forward')} waiting for your review</>)
+  if (staff && overdueMine.length) parts.push(<>{plural(overdueMine.length, 'overdue task')}</>)
+  if (!staff && inFlight.length) parts.push(<>{plural(inFlight.length, 'case')} mid-handoff</>)
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  const summary = incoming.length || overdueOnMine.length
-    ? [incoming.length && `${incoming.length} handover${incoming.length > 1 ? 's' : ''} waiting for you`, overdueOnMine.length && `${overdueOnMine.length} overdue task${overdueOnMine.length > 1 ? 's' : ''}`].filter(Boolean).join(' · ')
-    : 'Nothing urgent — a calm day so far.'
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
+
+  const stats = staff
+    ? [
+        { label: 'Cases you own', value: owned.length, note: 'open, not yet resolved', to: '/cases' },
+        { label: 'Waiting on you', value: incoming.length, note: incoming.length ? 'forwards to review' : 'no forwards to review', to: '/dashboard#handoffs' },
+        { label: 'Your open tasks', value: myTasks.length, note: dueThisWeek.length ? `${dueThisWeek.length} due this week` : 'nothing due this week', to: '/dashboard#tasks' },
+        { label: 'Overdue', value: overdueMine.length, note: 'yours or on your cases', to: '/alerts', alarm: overdueMine.length > 0 },
+      ]
+    : [
+        { label: 'Open cases', value: open.length, note: `${open.filter((c) => c.priority === 'high').length} high priority`, to: '/cases' },
+        { label: 'In handoff', value: inFlight.length, note: 'awaiting the receiver', to: '/dashboard#handoffs' },
+        { label: 'Overdue tasks', value: overdueAll.length, note: overdueAll.length ? `across ${plural(new Set(overdueAll.map((t) => t.caseId)).size, 'case')}` : 'everything on time', to: '/alerts', alarm: overdueAll.length > 0 },
+        { label: 'Resolved', value: resolvedRecently.length, note: 'in the last 30 days', to: '/cases' },
+      ]
 
   return (
     <>
-      <section className="grain relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900 via-blue-900 to-blue-800 px-7 py-8 text-zinc-50 shadow-md sm:px-10">
-        {/* quiet line drawing of the relay: two stations, the arc, the baton */}
-        <svg aria-hidden="true" viewBox="0 0 420 180" className="pointer-events-none absolute bottom-2 right-6 hidden h-[180px] w-[420px] opacity-90 lg:block">
-          <path d="M40 150 C 140 20, 280 20, 380 150" fill="none" stroke="#b6c17f" strokeOpacity=".55" strokeWidth="1.5" strokeDasharray="0.5 7" strokeLinecap="round" />
-          <ellipse cx="40" cy="156" rx="26" ry="7" fill="none" stroke="#c08040" strokeWidth="1.5" />
-          <ellipse cx="380" cy="156" rx="26" ry="7" fill="none" stroke="#b6c17f" strokeOpacity=".8" strokeWidth="1.5" />
-          <rect x="196" y="44" width="46" height="13" rx="6.5" transform="rotate(14 219 50)" fill="#c08040" />
-          <rect x="206" y="44" width="5" height="13" transform="rotate(14 219 50)" fill="#7a4b22" opacity=".6" />
-          <rect x="228" y="44" width="5" height="13" transform="rotate(14 219 50)" fill="#7a4b22" opacity=".6" />
-        </svg>
-        <div className="relative max-w-2xl">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-baton-soft/90">{today}</div>
-          <h1 className="mt-2 font-display text-[34px] font-normal leading-tight sm:text-[40px]">{greeting}, {me.name.split(' ')[0]}</h1>
-          <p className="mt-2 text-[14px] text-blue-100/80">{summary}</p>
-          <div className="mt-6 flex flex-wrap items-center gap-2.5">
-            {me.orgRole !== 'auditor' && (
-              <Link to="/cases?new=1" className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-[13px] font-medium text-blue-900 shadow-sm transition hover:bg-blue-50 active:translate-y-px">
-                <Plus className="size-4" />Register complaint
-              </Link>
-            )}
-            <Link to="/alerts" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/20 px-4 text-[13px] font-medium text-zinc-50 transition hover:bg-white/10">
-              <Siren className="size-4" />{urgentAlerts ? `${urgentAlerts} alert${urgentAlerts > 1 ? 's' : ''} need attention` : 'View alerts'}<ArrowRight className="size-3.5 opacity-70" />
-            </Link>
-            <span className="ml-1 text-[12px] text-blue-100/60">{me.title} · {me.department}</span>
-          </div>
+      <header className="mb-7 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
+          <div className="text-[12.5px] text-zinc-500">{today} · {me.department}</div>
+          <h1 className="mt-1 font-display text-[32px] font-normal leading-tight text-zinc-900">{greeting}, {me.name.split(' ')[0]}.</h1>
+          <p className="mt-1.5 text-[14.5px] text-zinc-600">
+            {parts.length
+              ? parts.map((p, i) => <Fragment key={i}>{i === 0 ? '' : i === parts.length - 1 ? ' and ' : ', '}{p}</Fragment>)
+              : 'Nothing needs you right now.'}
+            {parts.length > 0 && '.'}
+          </p>
         </div>
+        {me.orgRole !== 'auditor' && <ButtonLink to="/cases?new=1"><Plus className="size-4" />Register complaint</ButtonLink>}
+      </header>
+
+      <section aria-label="Summary" className="mb-7 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200 lg:grid-cols-4">
+        {stats.map((s) => <Stat key={s.label} {...s} />)}
       </section>
 
-      <div className="mb-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {counters.map(({ label, n, icon: Icon, hint, accent, to }) => {
-          const a = accents[accent]
-          return (
-            <TiltCard key={label} className={cn('rounded-2xl border bg-gradient-to-br shadow-sm', a.card)}>
-              <Link to={to} className="block rounded-2xl p-5">
-                <div className="flex items-start justify-between">
-                  <span className={cn('grid size-10 place-items-center rounded-xl shadow-sm', a.chip)}><Icon className="size-[18px]" strokeWidth={1.9} /></span>
-                  <ArrowRight className="size-4 text-zinc-300" />
-                </div>
-                <div className={cn('mt-4 font-display text-[38px] font-medium leading-none', a.num)}><CountUp value={n} /></div>
-                <div className="mt-2 text-[13px] font-medium text-zinc-800">{label}</div>
-                <div className="mt-0.5 text-[11.5px] text-zinc-500">{hint}</div>
-                <div className={cn('mt-4 h-1 w-10 rounded-full', a.bar)} />
-              </Link>
-            </TiltCard>
-          )
-        })}
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Panel id="incoming">
-          <PanelHeader title={titled(Inbox, 'caramel', 'Forwarded to me — waiting for my decision')} sub="Acknowledge each section, ask questions, then accept or reject" />
-          {incoming.length === 0 ? <Empty title="Nothing waiting" body="When a colleague forwards a case to you it appears here." /> : (
-            <table className="w-full text-[13px]">
-              <thead className="bg-zinc-50"><tr><th className={thClass}>Case</th><th className={thClass}>From</th><th className={thClass}>Reason</th><th className={thClass}>Ack.</th><th /></tr></thead>
-              <tbody className="divide-y divide-zinc-100">
-                {incoming.map((h) => {
-                  const c = caseOf(h.caseId)
-                  const acked = Object.values(h.acks).filter(Boolean).length
-                  return (
-                    <tr key={h.id} className="hover:bg-zinc-50">
-                      <td className={tdClass}><div className="font-mono text-xs text-zinc-500">{c.code}</div><div className="max-w-56 truncate">{c.title}</div></td>
-                      <td className={tdClass}><Person user={emp(h.fromId)} sub={ago(h.createdAt)} size="xs" /></td>
-                      <td className={cn(tdClass, 'text-xs text-zinc-600')}>{reasonLabel[h.reason]}</td>
-                      <td className={cn(tdClass, 'font-mono text-xs')}>{acked}/5</td>
-                      <td className={cn(tdClass, 'text-right')}><ButtonLink to={`/handoffs/${h.id}`} size="sm">Review</ButtonLink></td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          )}
-          {outgoing.length > 0 && (
-            <div className="border-t border-zinc-100 bg-zinc-50/70 px-5 py-2.5 text-xs text-zinc-600">
-              {outgoing.map((h) => (
-                <div key={h.id}>You forwarded <Link className="font-mono text-blue-700 hover:underline" to={`/handoffs/${h.id}`}>{caseOf(h.caseId).code}</Link> to {emp(h.toId)?.name} — awaiting their decision.</div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        <Panel>
+          <PanelHeader title="Needs attention" sub={staff ? 'Late or close to it, on your work' : 'Late or close to it, across all cases'}
+            action={<Link to="/alerts" className="text-xs text-blue-700 hover:underline">All alerts</Link>} />
+          {attention.length === 0 ? <Empty title="Nothing needs you right now" body="Overdue tasks, waiting forwards and unanswered questions show up here." /> : (
+            <ul className="divide-y divide-zinc-100">
+              {attention.map((a) => (
+                <li key={a.id}>
+                  <Link to={a.link} className="flex items-start gap-3 px-5 py-3 hover:bg-zinc-50">
+                    <span className={cn('mt-[7px] size-2 shrink-0 rounded-full', severityDot[a.severity])} aria-label={a.severity} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13.5px] text-zinc-900">{a.title}</span>
+                      <span className="block truncate text-[12px] text-zinc-500"><span className="font-mono">{a.caseCode}</span> · {a.detail.replace(`${a.caseCode} · `, '')}</span>
+                    </span>
+                    <span className="shrink-0 pt-0.5 text-[12px] text-zinc-400">{ago(a.at)}</span>
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </Panel>
 
-        <Panel id="tasks">
-          <PanelHeader title={titled(ListChecks, 'moss', 'My open tasks')} sub="Tasks assigned to me on any case, earliest deadline first" />
+        <Panel id="handoffs">
+          <PanelHeader title="Handoffs in flight" sub={staff ? 'Forwards to and from you' : 'Every forward awaiting a decision'} />
+          {inFlight.length === 0 ? <Empty title="No handoffs in flight" body="When a case is forwarded it shows here until it is accepted or sent back." /> : (
+            <ul className="divide-y divide-zinc-100">
+              {inFlight.map((h) => {
+                const c = caseOf(h.caseId)
+                const acked = Object.values(h.acks).filter(Boolean).length
+                const toMe = h.toId === me.id
+                return (
+                  <li key={h.id}>
+                    <Link to={`/handoffs/${h.id}`} className="block px-5 py-3 hover:bg-zinc-50">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="truncate text-[13.5px] text-zinc-900"><span className="mr-1.5 font-mono text-[12px] text-zinc-500">{c.code}</span>{c.title}</span>
+                        {toMe ? <span className="shrink-0 text-[12px] font-medium text-blue-700">Review</span> : <span className="shrink-0 font-mono text-[12px] text-zinc-500">{acked}/5</span>}
+                      </div>
+                      <div className="mt-1 text-[12px] text-zinc-500">
+                        {emp(h.fromId)?.name} → {emp(h.toId)?.name} · {reasonLabel[h.reason].toLowerCase()} · {ago(h.createdAt)}
+                      </div>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </Panel>
+      </div>
+
+      {staff && (
+        <Panel id="tasks" className="mt-6">
+          <PanelHeader title="Your open tasks" sub="Earliest deadline first" />
           {myTasks.length === 0 ? <Empty title="No open tasks" /> : (
             <table className="w-full text-[13px]">
               <thead className="bg-zinc-50"><tr><th className={thClass}>Task</th><th className={thClass}>Case</th><th className={thClass}>Due</th></tr></thead>
               <tbody className="divide-y divide-zinc-100">
                 {myTasks.map((t) => (
-                  <tr key={t.id} onClick={() => navigate(`/cases/${t.caseId}?tab=actions&highlight=${t.id}`)} className={cn('cursor-pointer hover:bg-zinc-50', dueState(t) === 'overdue' && 'bg-red-50/50')}>
+                  <tr key={t.id} onClick={() => navigate(`/cases/${t.caseId}?tab=actions&highlight=${t.id}`)} className="cursor-pointer hover:bg-zinc-50">
                     <td className={tdClass}>{t.title}</td>
                     <td className={cn(tdClass, 'font-mono text-xs text-zinc-500')}>{caseOf(t.caseId)?.code}</td>
                     <td className={tdClass}><DueLabel task={t} /></td>
@@ -160,23 +167,23 @@ export default function Dashboard() {
             </table>
           )}
         </Panel>
-      </div>
+      )}
 
       <Panel className="mt-6">
         <PanelHeader
-          title={titled(FolderOpen, 'olive', me.orgRole === 'employee' ? 'Cases I am involved in' : 'All cases')}
-          sub="Your role is worked out from each case's records — owner, incoming receiver, task assignee or previous owner"
-          action={<Link to="/cases" className="text-xs text-blue-700 hover:underline">Open case register</Link>}
+          title={staff ? 'Your cases' : 'All cases'}
+          sub={staff ? 'Every case you own, receive, have tasks on, or owned before' : 'Most recently updated first'}
+          action={<Link to="/cases" className="text-xs text-blue-700 hover:underline">Case register</Link>}
         />
         {list.length === 0 ? <Empty title="No cases yet" /> : (
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
-              <thead className="bg-zinc-50"><tr><th className={thClass}>Case</th><th className={thClass}>My role</th><th className={thClass}>Stage</th><th className={thClass}>Owner</th><th className={thClass}>Updated</th></tr></thead>
+              <thead className="bg-zinc-50"><tr><th className={thClass}>Case</th>{staff && <th className={thClass}>Your role</th>}<th className={thClass}>Stage</th><th className={thClass}>Owner</th><th className={thClass}>Updated</th></tr></thead>
               <tbody className="divide-y divide-zinc-100">
-                {list.map((c) => (
+                {[...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map((c) => (
                   <tr key={c.id} onClick={() => navigate(`/cases/${c.id}`)} className="cursor-pointer hover:bg-zinc-50">
                     <td className={tdClass}><span className="mr-2 font-mono text-xs text-zinc-500">{c.code}</span>{c.title}</td>
-                    <td className={tdClass}><RoleLabel role={c.role} /></td>
+                    {staff && <td className={tdClass}><RoleLabel role={c.role} /></td>}
                     <td className={tdClass}><StageLabel stage={c.stage} /></td>
                     <td className={tdClass}><Person user={emp(c.ownerId)} size="xs" /></td>
                     <td className={cn(tdClass, 'text-xs text-zinc-500')}>{ago(c.updatedAt)}</td>
@@ -187,24 +194,6 @@ export default function Dashboard() {
           </div>
         )}
       </Panel>
-
-      {overdueOnMine.length > 0 && (
-        <Panel className="mt-6 border-red-200/80">
-          <PanelHeader title={titled(AlarmClock, 'red', 'Overdue actions')} sub="The deadline watcher has notified the assignee and the case owner" />
-          <ul className="divide-y divide-zinc-100">
-            {overdueOnMine.map((t) => (
-              <li key={t.id}>
-                <Link to={`/cases/${t.caseId}?tab=actions&highlight=${t.id}`} className="flex items-center gap-3 px-4 py-2 hover:bg-zinc-50">
-                  <Label tone="red">OVERDUE</Label>
-                  <span className="flex-1">{t.title}</span>
-                  <span className="font-mono text-xs text-zinc-500">{caseOf(t.caseId).code}</span>
-                  <Person user={emp(t.ownerId)} size="xs" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      )}
     </>
   )
 }

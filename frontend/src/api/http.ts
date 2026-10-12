@@ -1,7 +1,7 @@
 import { useStore } from '../store/useStore'
 import { useAlerts } from '../store/useAlerts'
 import { endpoints, type UpdateTaskReq } from './contracts'
-import { downloadFile, request, tokenStore } from './client'
+import { downloadFile, fetchFile, request, tokenStore } from './client'
 import type { Api } from './types'
 
 /**
@@ -68,8 +68,9 @@ export const httpApi: Api = {
 
   alerts: () => request(endpoints.alerts),
   report: (q) => request(endpoints.report, { query: { ...q } }),
+  reportPdfBlob: async (q) => (await fetchFile(endpoints.reportPdf, { ...q })).blob,
   reportPdf: (q) => downloadFile(endpoints.reportPdf, { ...q },
-    `baton-report-${q.period === 'year' ? q.year : `${q.year}-${String(q.month).padStart(2, '0')}`}.pdf`),
+    `thread-report-${q.period === 'year' ? q.year : `${q.year}-${String(q.month).padStart(2, '0')}`}.pdf`),
 
   async pollDeadlines() { await sync(); return 0 },
   async reportAccessDenied() { /* server already logged the refused request */ },

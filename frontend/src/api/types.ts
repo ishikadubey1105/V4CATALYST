@@ -42,6 +42,8 @@ export interface Api {
   report(q: ReportQuery): Promise<Report>
   /** Saves the report PDF to the user's downloads. */
   reportPdf(q: ReportQuery): Promise<void>
+  /** The report PDF itself, for an in-page preview. */
+  reportPdfBlob(q: ReportQuery): Promise<Blob>
 
   /** Mock: runs the deadline job locally. HTTP: the server runs it on a schedule; we just re-sync. */
   pollDeadlines(): Promise<number>

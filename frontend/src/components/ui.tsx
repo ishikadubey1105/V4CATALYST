@@ -39,7 +39,7 @@ export function ButtonLink({ variant, size, className, ...props }: LinkProps & {
 /* ---------- Surfaces ---------- */
 
 export function Panel({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <section className={cn('overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm', className)} {...props} />
+  return <section className={cn('overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xs', className)} {...props} />
 }
 
 export function PanelHeader({ title, sub, action, className }: { title: ReactNode; sub?: ReactNode; action?: ReactNode; className?: string }) {
@@ -303,14 +303,14 @@ export const tdClass = 'px-4 py-2.5 align-middle'
 
 /* ---------- Brand ---------- */
 
-/** The Baton mark: a baton mid-pass along a dotted relay arc. */
+/** The Thread mark: one unbroken thread, looping once, between two points — a case and its whole story. */
 export function BrandMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={cn('size-8 shrink-0', className)} aria-hidden="true">
       <rect width="32" height="32" rx="9" fill="#3f4720" />
-      <path d="M8.5 21.5c3.2-6.4 8.6-11 15-12.6" fill="none" stroke="#b6c17f" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="0.1 3.2" />
-      <rect x="11.2" y="13.8" width="13" height="4.6" rx="2.3" transform="rotate(-38 17.7 16.1)" fill="#c08040" />
-      <circle cx="9" cy="22" r="2.2" fill="#fbfaf8" />
+      <path d="M8 22.5c3.2-.4 5.6-3 5.2-6.2-.3-2.3-3-2.6-3.4-.5-.5 2.7 3.6 4.3 7 3.2 3.3-1.1 5.6-4.4 7.2-8.5" fill="none" stroke="#c08040" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="8" cy="22.5" r="2.1" fill="#fbfaf8" />
+      <circle cx="24" cy="10.5" r="2.1" fill="#b6c17f" />
     </svg>
   )
 }

@@ -1,5 +1,5 @@
 """
-Start the full Baton stack with one command:
+Start the full Thread stack with one command:
 
     python run_app.py            (add --reload to auto-restart the backend on code changes)
 
@@ -30,7 +30,7 @@ RELOAD = ["--reload"] if "--reload" in sys.argv[1:] else []
 
 def ensure_deps() -> None:
     try:
-        import alembic, anthropic, fastapi, matplotlib, multipart, psycopg, reportlab, sqlalchemy, uvicorn  # noqa: F401, E401
+        import alembic, fastapi, groq, matplotlib, multipart, psycopg, reportlab, sqlalchemy, uvicorn  # noqa: F401, E401
     except ImportError:
         print("[setup] installing backend requirements...")
         subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(BACKEND / "requirements.txt")], check=True)
@@ -64,7 +64,7 @@ def main() -> None:
     for name, p in procs.items():
         threading.Thread(target=pipe, args=(name, p), daemon=True).start()
 
-    print(f"\n  Baton is starting\n  App : http://localhost:{WEB_PORT}\n  API : http://localhost:{API_PORT}/api/docs\n  Ctrl+C to stop\n", flush=True)
+    print(f"\n  Thread is starting\n  App : http://localhost:{WEB_PORT}\n  API : http://localhost:{API_PORT}/api/docs\n  Ctrl+C to stop\n", flush=True)
     try:
         while all(p.poll() is None for p in procs.values()):
             time.sleep(0.5)

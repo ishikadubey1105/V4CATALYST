@@ -1,4 +1,4 @@
-# Baton — backend (Python / FastAPI)
+# Thread — backend (Python / FastAPI)
 
 Implements every route in [`../frontend/API_CONTRACT.md`](../frontend/API_CONTRACT.md) and enforces the same rules as the
 frontend's mock adapter, on the server: completeness gate, stage rules, 5-ack accept, login lockout, per-case
@@ -27,17 +27,18 @@ VITE_API_BASE_URL=http://localhost:8080/api
 
 ## AI handoff assistant
 
-Two buttons use Claude (`claude-opus-5-5`) to make handoffs safer:
+Two buttons use an LLM on **Groq** (default `openai/gpt-oss-120b`) to make handoffs safer:
 
 - **Forward wizard › Handoff note › Draft with AI** (case owner) — writes the handoff note from the case record and lists
   what to do first, the risks, and the gaps to fix before forwarding. The owner reviews, edits, and can undo it.
 - **Handoff review › AI briefing › Brief me** (receiver) — what you are taking on, risks, and questions to ask the
   sender before accepting (including claims in the note the record doesn't support).
 
-Set `ANTHROPIC_API_KEY` in `backend/.env` to turn it on. Without a key, or if a call fails, a template built from the same
-records answers instead, labelled as such, so the demo never breaks. Requests use structured JSON output and server-side
-refusal fallbacks (`fallbacks: "default"`); case text is passed as data, not instructions. Each use is audit-logged
-(`ai.handoff_drafted`, `ai.handoff_briefed`). Code: `app/ai.py`, `app/routers/ai.py`.
+Put `GROQ_API_KEY=...` in `backend/.env` (get one at console.groq.com/keys) and restart. Without a key, or if a call fails
+or returns something malformed, a template built from the same records answers instead, labelled as such, so the demo
+never breaks. `AI_MODEL` picks any Groq chat model: `openai/gpt-oss-*` and `qwen/*` get strict JSON-schema output,
+others (e.g. `llama-3.3-70b-versatile`) use JSON mode; every reply is validated before use. Case text is passed as data,
+not instructions. Each use is audit-logged (`ai.handoff_drafted`, `ai.handoff_briefed`). Code: `app/ai.py`, `app/routers/ai.py`.
 
 ## Alerts and reports
 
@@ -99,7 +100,7 @@ migrations, legacy-database adoption, downgrade/upgrade round trip).
 |---|---|
 | `app/main.py` | App, CORS, `{code, message}` error handlers, startup (create tables, seed, deadline loop) |
 | `app/routers/*.py` | One module per area: `auth`, `sync`, `cases` (+ tasks, notes, decisions, documents, questions), `handoffs`, `notifications`, `employees` |
-| `app/ai.py`, `app/routers/ai.py` | AI handoff assistant (Claude + template fallback) |
+| `app/ai.py`, `app/routers/ai.py` | AI handoff assistant (Groq LLM + template fallback) |
 | `app/alerts.py`, `app/reports.py`, `app/routers/insights.py` | Alert rules and the monthly / yearly report |
 | `app/rules.py` | Port of `permissions.ts` + `completeness.ts`: case roles, visibility, stage rules, 8-check gate |
 | `app/models.py` | SQLAlchemy tables |
