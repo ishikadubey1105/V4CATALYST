@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Sparkles } from 'lucide-react'
 import { useMe, useStore } from '../store/useStore'
 import { api, useAction } from '../api'
+import type { AiResult } from '../api/contracts'
+import { AiInsights, AiSource } from '../components/AiAssist'
 import { useEmployee } from '../lib/hooks'
 import { Button, DocType, DueLabel, Empty, Field, Label, Modal, PageHeader, Panel, PanelHeader, Person, inputClass } from '../components/ui'
 import { canActOnHandoff } from '../lib/permissions'
@@ -21,6 +23,8 @@ export default function HandoffReview() {
   const [rejectOpen, setRejectOpen] = useState(false)
   const [reason, setReason] = useState('')
   const { run, pending } = useAction()
+  const [brief, setBrief] = useState<AiResult | null>(null)
+  const briefing = useAction()
 
   if (!h) return <Panel><Empty title="Handoff not found" /></Panel>
   const c = s.cases.find((x) => x.id === h.caseId)!
@@ -139,6 +143,29 @@ export default function HandoffReview() {
         </Panel>
 
         <div className="space-y-4 lg:sticky lg:top-16 lg:self-start">
+          {canAct && (
+            <Panel>
+              <PanelHeader
+                title="AI briefing"
+                sub="What you are taking on, and what to ask before accepting"
+                action={
+                  <Button size="sm" variant="secondary" disabled={briefing.pending} onClick={async () => {
+                    const res = await briefing.run(() => api.aiHandoffBrief(h.id))
+                    if (res) setBrief(res)
+                  }}>
+                    <Sparkles className="size-3.5" />{briefing.pending ? 'Reading…' : brief ? 'Refresh' : 'Brief me'}
+                  </Button>
+                }
+              />
+              {brief && (
+                <div className="space-y-3 p-4">
+                  <AiSource result={brief} />
+                  <p className="text-[13px] leading-relaxed text-zinc-800">{brief.text}</p>
+                  <AiInsights result={brief} gapsTitle={`Ask ${from?.name.split(' ')[0] ?? 'the sender'}`} />
+                </div>
+              )}
+            </Panel>
+          )}
           <Panel>
             <PanelHeader title="Clarification" sub="Questions between receiver and sender" />
             <ul className="max-h-80 divide-y divide-zinc-100 overflow-y-auto">

@@ -1,28 +1,93 @@
 @import "tailwindcss";
 
 /*
- * Nardo grey theme. The zinc scale is re-tinted to Nardo (#686A6C at 600), so every zinc-* utility in the
- * app inherits the palette. Status colours (red/amber/green/blue) are kept for meaning only.
+ * Baton design tokens.
+ *
+ * Palette: olive green, white and brown.
+ * Neutrals: warm browns (the zinc scale is re-tinted, so every zinc-* utility in the app inherits them).
+ * Brand:    olive green (the blue scale is re-tinted: links, focus rings, "info" tones and selection use it).
+ * Accent:   caramel brown, used sparingly for the mark and highlights. Surfaces are white on a near-white page.
+ * Status colours (red / amber / green) keep their meaning only.
  */
 @theme {
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
 
-  --color-zinc-50: #f4f5f5;
-  --color-zinc-100: #e9eaeb;
-  --color-zinc-200: #d5d7d8;
-  --color-zinc-300: #b9bbbd;
-  --color-zinc-400: #95979a;
-  --color-zinc-500: #7a7c7f;
-  --color-zinc-600: #686a6c;
-  --color-zinc-700: #55575a;
-  --color-zinc-800: #434548;
-  --color-zinc-900: #333537;
-  --color-zinc-950: #222325;
+  --color-zinc-50: #fbfaf8;
+  --color-zinc-100: #f5f2ed;
+  --color-zinc-200: #ebe5dc;
+  --color-zinc-300: #dbd1c3;
+  --color-zinc-400: #b3a593;
+  --color-zinc-500: #8c7d6a;
+  --color-zinc-600: #705f4e;
+  --color-zinc-700: #57493b;
+  --color-zinc-800: #3e3329;
+  --color-zinc-900: #2b231c;
+  --color-zinc-950: #1b1611;
+
+  --color-blue-50: #f5f6ec;
+  --color-blue-100: #e7ebd2;
+  --color-blue-200: #d2d9ac;
+  --color-blue-300: #b6c17f;
+  --color-blue-400: #98a55a;
+  --color-blue-500: #7b8a3d;
+  --color-blue-600: #63702f;
+  --color-blue-700: #4e5926;
+  --color-blue-800: #3f4720;
+  --color-blue-900: #343b1c;
+  --color-blue-950: #1d210e;
+
+  /* Success = moss green: clearly "done", distinct from the olive brand, same earthy family */
+  --color-emerald-50: #eff6ee;
+  --color-emerald-100: #d9ebd7;
+  --color-emerald-200: #b6d7b3;
+  --color-emerald-300: #8cbd88;
+  --color-emerald-400: #66a262;
+  --color-emerald-500: #4a8a47;
+  --color-emerald-600: #3c7339;
+  --color-emerald-700: #315e2f;
+  --color-emerald-800: #284c27;
+  --color-green-50: #eff6ee;
+  --color-green-100: #d9ebd7;
+  --color-green-200: #b6d7b3;
+  --color-green-300: #8cbd88;
+  --color-green-400: #66a262;
+  --color-green-500: #4a8a47;
+  --color-green-600: #3c7339;
+  --color-green-700: #315e2f;
+  --color-green-800: #284c27;
+
+  --color-baton: #c08040;
+  --color-baton-soft: #ecd8bd;
+  --color-paper: #fbfaf7;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+
+  --shadow-xs: 0 1px 1px rgb(35 32 28 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(35 32 28 / 0.05), 0 1px 3px rgb(35 32 28 / 0.05);
+  --shadow-md: 0 2px 4px rgb(35 32 28 / 0.04), 0 6px 16px -4px rgb(35 32 28 / 0.08);
+  --shadow-lg: 0 4px 8px rgb(35 32 28 / 0.04), 0 16px 32px -8px rgb(35 32 28 / 0.14);
+  --shadow-xl: 0 8px 16px rgb(35 32 28 / 0.06), 0 28px 56px -12px rgb(35 32 28 / 0.22);
+
+  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-tick: tick 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+@keyframes rise { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+@keyframes tick { from { opacity: 0; transform: scale(0.6) } to { opacity: 1; transform: none } }
 @keyframes flash { 0%, 100% { background-color: transparent } 30% { background-color: rgb(254 243 199) } }
 @keyframes shake { 0%, 100% { transform: translateX(0) } 25% { transform: translateX(-4px) } 75% { transform: translateX(4px) } }
+@keyframes travel { 0% { offset-distance: 0% } 100% { offset-distance: 100% } }
+@keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+@keyframes grow { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+
 .highlight-row { animation: flash 1.4s ease-in-out 2; outline: 2px solid rgb(217 119 6); outline-offset: -2px; }
 
 /* n8n-style canvas grid */
@@ -32,9 +97,36 @@
   background-size: 20px 20px;
 }
 
-body { @apply bg-zinc-100 text-zinc-900 antialiased; font-size: 13px; }
+/* Fine paper grain for brand surfaces (no image request: an inline SVG noise tile). */
+.grain { position: relative; isolation: isolate; }
+.grain::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0.07; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+html { background: var(--color-paper); }
+body {
+  @apply text-zinc-900 antialiased;
+  background: var(--color-paper);
+  font-size: 13px;
+  font-feature-settings: "ss01", "cv11";
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--color-blue-100); color: var(--color-blue-900); }
+/* In the base layer so component utilities (e.g. inputs' soft focus ring) can override it */
+@layer base { :focus-visible { outline: 2px solid var(--color-blue-500); outline-offset: 2px; } }
+
+/* Calm, thin scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--color-zinc-300) transparent; }
+
+.font-display { font-family: var(--font-display); font-optical-sizing: auto; letter-spacing: -0.015em; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
 
 @media print {
   aside, header, .no-print { display: none !important; }
   main { max-width: none !important; padding: 0 !important; }
+  body, html { background: white; }
 }

@@ -19,7 +19,7 @@ from .db import SessionLocal
 from .deadlines import deadline_loop
 from .errors import ApiError
 from .migrate import upgrade_db
-from .routers import auth, cases, employees, handoffs, notifications, sync
+from .routers import ai, auth, cases, employees, handoffs, insights, notifications, sync
 from .seed import seed
 
 logging.basicConfig(level=logging.INFO)
@@ -47,6 +47,7 @@ app.add_middleware(
     allow_origins=settings.cors_origin_list,
     allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
+    expose_headers=["Content-Disposition"],  # lets the browser read the PDF's file name cross-origin
 )
 
 
@@ -77,7 +78,7 @@ async def unexpected_error(_: Request, exc: Exception):
     return JSONResponse({"code": "INTERNAL", "message": "Something went wrong on the server."}, status_code=500)
 
 
-for r in (auth.router, sync.router, cases.router, handoffs.router, notifications.router, employees.router):
+for r in (auth.router, sync.router, cases.router, handoffs.router, notifications.router, employees.router, ai.router, insights.router):
     app.include_router(r, prefix="/api")
 
 

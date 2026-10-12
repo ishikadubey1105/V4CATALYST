@@ -1,5 +1,5 @@
 import type {
-  AckReq, CreateCaseReq, CreateDecisionReq, CreateEmployeeReq, CreateNoteReq, ReassignReq, SubmitHandoffReq, UpdateEmployeeReq, UpdateTaskReq,
+  AckReq, AiDraftReq, AiResult, AlertsRes, Report, ReportQuery, CreateCaseReq, CreateDecisionReq, CreateEmployeeReq, CreateNoteReq, ReassignReq, SubmitHandoffReq, UpdateEmployeeReq, UpdateTaskReq,
 } from './contracts'
 import type { Employee, Stage } from '../lib/types'
 
@@ -34,6 +34,14 @@ export interface Api {
 
   createEmployee(body: CreateEmployeeReq): Promise<{ id: string; tempPassword: string }>
   updateEmployee(id: string, patch: UpdateEmployeeReq): Promise<void>
+
+  aiHandoffDraft(caseId: string, body: AiDraftReq): Promise<AiResult>
+  aiHandoffBrief(handoffId: string): Promise<AiResult>
+
+  alerts(): Promise<AlertsRes>
+  report(q: ReportQuery): Promise<Report>
+  /** Saves the report PDF to the user's downloads. */
+  reportPdf(q: ReportQuery): Promise<void>
 
   /** Mock: runs the deadline job locally. HTTP: the server runs it on a schedule; we just re-sync. */
   pollDeadlines(): Promise<number>

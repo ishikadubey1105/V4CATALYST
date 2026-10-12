@@ -105,3 +105,11 @@ class UpdateEmployeeReq(Dto):
     active: bool | None = None
     department: str | None = Field(default=None, min_length=1, max_length=120)
     title: str | None = Field(default=None, min_length=1, max_length=120)
+
+
+class AiDraftReq(Dto):
+    """Whatever the forward wizard has so far; every field is optional."""
+
+    to_id: str | None = None
+    reason: HandoffReason | None = None
+    reason_note: str = ""

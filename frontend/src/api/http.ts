@@ -1,13 +1,17 @@
 import { useStore } from '../store/useStore'
+import { useAlerts } from '../store/useAlerts'
 import { endpoints, type UpdateTaskReq } from './contracts'
-import { request, tokenStore } from './client'
+import { downloadFile, request, tokenStore } from './client'
 import type { Api } from './types'
 
 /**
  * Real backend adapter. Each method is one call from contracts.ts, followed by a re-sync so the
  * store (the UI's cache) reflects server truth. Granular cache updates can replace sync() later.
  */
-const sync = async () => useStore.getState().hydrate(await request(endpoints.sync))
+const sync = async () => {
+  useStore.getState().hydrate(await request(endpoints.sync))
+  void useAlerts.getState().refresh() // alerts depend on the same records, so refresh them alongside
+}
 const id = (v: string) => ({ id: v })
 
 export const httpApi: Api = {
@@ -57,6 +61,15 @@ export const httpApi: Api = {
 
   async createEmployee(body) { const r = await request(endpoints.createEmployee, { body }); await sync(); return { id: r.employee.id, tempPassword: r.tempPassword } },
   async updateEmployee(eid, patch) { await request(endpoints.updateEmployee, { params: id(eid), body: patch }); await sync() },
+
+  // Read-only for the UI's cache (the server only appends an audit row), so no re-sync.
+  aiHandoffDraft: (caseId, body) => request(endpoints.aiHandoffDraft, { params: id(caseId), body }),
+  aiHandoffBrief: (hid) => request(endpoints.aiHandoffBrief, { params: id(hid) }),
+
+  alerts: () => request(endpoints.alerts),
+  report: (q) => request(endpoints.report, { query: { ...q } }),
+  reportPdf: (q) => downloadFile(endpoints.reportPdf, { ...q },
+    `baton-report-${q.period === 'year' ? q.year : `${q.year}-${String(q.month).padStart(2, '0')}`}.pdf`),
 
   async pollDeadlines() { await sync(); return 0 },
   async reportAccessDenied() { /* server already logged the refused request */ },

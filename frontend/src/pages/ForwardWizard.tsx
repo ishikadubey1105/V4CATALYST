@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Check, Search, X } from 'lucide-react'
+import { Check, Search, Sparkles, X } from 'lucide-react'
 import { useMe, useStore } from '../store/useStore'
 import { api, useAction } from '../api'
+import type { AiResult } from '../api/contracts'
+import { AiInsights, AiSource } from '../components/AiAssist'
 import { Button, ButtonLink, Empty, Field, Meter, PageHeader, Panel, PanelHeader, Person, inputClass, tdClass, thClass } from '../components/ui'
 import { runCompleteness } from '../lib/completeness'
 import { canForward } from '../lib/permissions'
@@ -19,6 +21,9 @@ export default function ForwardWizard() {
   const step = Math.min(2, Math.max(0, Number(params.get('step') ?? 0)))
   const s = useStore()
   const [q, setQ] = useState('')
+  const [ai, setAi] = useState<AiResult | null>(null)
+  const [beforeAi, setBeforeAi] = useState<string | null>(null) // lets the user undo an AI draft
+  const drafting = useAction()
   const { run, pending } = useAction()
   const c = s.cases.find((x) => x.id === id)
   const draft: Draft = (id && s.drafts[id]) || { summary: '', reasonNote: '' }
@@ -63,10 +68,10 @@ export default function ForwardWizard() {
         actions={<Button variant="ghost" onClick={() => { s.discardDraft(c.id); navigate(`/cases/${c.id}`) }}><X className="size-3.5" />Discard draft</Button>}
       />
 
-      <ol className="mb-5 grid grid-cols-3 overflow-hidden rounded-md border border-zinc-200 bg-white">
+      <ol className="mb-6 grid grid-cols-3 gap-1 rounded-xl border border-zinc-200/80 bg-white p-1 shadow-sm">
         {steps.map((label, i) => (
-          <li key={label} className={cn('border-r border-zinc-200 last:border-r-0', i === step && 'bg-zinc-900 text-white')}>
-            <button onClick={() => go(i)} className="flex w-full items-center gap-2 px-3 py-2 text-left">
+          <li key={label} className={cn('rounded-lg transition-colors', i === step ? 'bg-zinc-900 text-white shadow-md' : 'hover:bg-zinc-50')}>
+            <button onClick={() => go(i)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left">
               <span className={cn('font-mono text-[11px]', i === step ? 'text-zinc-400' : 'text-zinc-500')}>
                 {i < step ? <Check className="size-3 text-green-600" /> : `0${i + 1}`}
               </span>
@@ -128,28 +133,59 @@ export default function ForwardWizard() {
       )}
 
       {step === 1 && (
-        <Panel>
-          <PanelHeader title="Handoff note" sub={`What ${receiver?.name.split(' ')[0] ?? 'the recipient'} must know first: current position, risks, what is urgent`} />
-          <div className="p-4">
-            <textarea className={cn(inputClass, 'min-h-48 leading-relaxed')} value={draft.summary} onChange={(e) => save({ summary: e.target.value })}
-              placeholder="e.g. Carrier has agreed to roll back the routing rule; waiting for written confirmation. Most urgent: send the remediation plan to Nimbus by Friday." />
-            <div className="mt-1.5 flex justify-between text-xs">
-              <span className={draft.summary.trim().length >= 40 ? 'text-green-700' : 'text-zinc-500'}>{draft.summary.trim().length} / 40 characters minimum</span>
-              {/* Appends below what is already written instead of replacing it. */}
-              <button
-                type="button" disabled={draft.summary.includes(c.summary.trim())}
-                className="text-blue-700 hover:underline disabled:text-zinc-400 disabled:no-underline"
-                onClick={() => save({ summary: [draft.summary.trim(), c.summary.trim()].filter(Boolean).join('\n\n') })}
-              >
-                {draft.summary.includes(c.summary.trim()) ? 'Case summary inserted' : 'Insert case summary'}
-              </button>
+        <div className={cn('grid gap-4', ai && 'lg:grid-cols-[1fr_360px]')}>
+          <Panel>
+            <PanelHeader
+              title="Handoff note"
+              sub={`What ${receiver?.name.split(' ')[0] ?? 'the recipient'} must know first: current position, risks, what is urgent`}
+              action={
+                <Button size="sm" variant="secondary" disabled={drafting.pending} onClick={async () => {
+                  const res = await drafting.run(() => api.aiHandoffDraft(c.id, { toId: draft.toId, reason: draft.reason, reasonNote: draft.reasonNote }))
+                  if (!res) return
+                  setBeforeAi(draft.summary)
+                  save({ summary: res.text })
+                  setAi(res)
+                }}>
+                  <Sparkles className="size-3.5" />{drafting.pending ? 'Drafting…' : ai ? 'Redraft with AI' : 'Draft with AI'}
+                </Button>
+              }
+            />
+            <div className="p-4">
+              {ai && (
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+                  <AiSource result={ai} />
+                  <span className="text-zinc-500">Review and edit before sending — you are accountable for this note.</span>
+                  {beforeAi !== null && (
+                    <button type="button" className="text-blue-700 hover:underline" onClick={() => { save({ summary: beforeAi }); setBeforeAi(null) }}>Undo</button>
+                  )}
+                </div>
+              )}
+              <textarea className={cn(inputClass, 'min-h-48 leading-relaxed')} value={draft.summary} onChange={(e) => save({ summary: e.target.value })}
+                placeholder="e.g. Carrier has agreed to roll back the routing rule; waiting for written confirmation. Most urgent: send the remediation plan to Nimbus by Friday." />
+              <div className="mt-1.5 flex justify-between text-xs">
+                <span className={draft.summary.trim().length >= 40 ? 'text-green-700' : 'text-zinc-500'}>{draft.summary.trim().length} / 40 characters minimum</span>
+                {/* Appends below what is already written instead of replacing it. */}
+                <button
+                  type="button" disabled={draft.summary.includes(c.summary.trim())}
+                  className="text-blue-700 hover:underline disabled:text-zinc-400 disabled:no-underline"
+                  onClick={() => save({ summary: [draft.summary.trim(), c.summary.trim()].filter(Boolean).join('\n\n') })}
+                >
+                  {draft.summary.includes(c.summary.trim()) ? 'Case summary inserted' : 'Insert case summary'}
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="flex justify-between border-t border-zinc-200 p-3">
-            <Button variant="secondary" onClick={() => go(0)}>Back</Button>
-            <Button onClick={() => go(2)}>Run completeness check</Button>
-          </div>
-        </Panel>
+            <div className="flex justify-between border-t border-zinc-200 p-3">
+              <Button variant="secondary" onClick={() => go(0)}>Back</Button>
+              <Button onClick={() => go(2)}>Run completeness check</Button>
+            </div>
+          </Panel>
+          {ai && (
+            <Panel className="lg:sticky lg:top-16 lg:self-start">
+              <PanelHeader title="AI review of this case" sub="What the next owner must not miss" />
+              <div className="p-4"><AiInsights result={ai} gapsTitle="Fix before forwarding" /></div>
+            </Panel>
+          )}
+        </div>
       )}
 
       {step === 2 && (

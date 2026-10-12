@@ -143,7 +143,8 @@ def update_task(task_id: str, body: UpdateTaskReq, user: CurrentUser, db: Db):
     if "due" in sent:
         parts.append(f"deadline → {body.due.date().isoformat() if body.due else 'none'}")
         if body.due != t.due:
-            t.overdue_notified = False  # a new deadline gets its own overdue alert
+            # a new deadline gets its own reminders and overdue alert
+            t.overdue_notified = t.due_soon_notified = t.escalated = False
         t.due = body.due
     if "done" in sent and body.done is not None:
         parts.append("completed" if body.done else "reopened")

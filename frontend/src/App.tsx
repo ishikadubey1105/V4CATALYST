@@ -15,6 +15,8 @@ import Notifications from './pages/Notifications'
 import AdminConsole from './pages/AdminConsole'
 import AuditLog from './pages/AuditLog'
 import Unauthorized from './pages/Unauthorized'
+import Alerts from './pages/Alerts'
+import Reports from './pages/Reports'
 
 export default function App() {
   return (
@@ -30,6 +32,8 @@ export default function App() {
           <Route path="/cases/:id/forward" element={<ForwardWizard />} />
           <Route path="/handoffs/:id" element={<HandoffReview />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/alerts" element={<Alerts />} />
+          <Route path="/reports" element={<ProtectedRoute roles={routeAccess.reports}><Reports /></ProtectedRoute>} />
           <Route path="/console" element={<ProtectedRoute roles={routeAccess.console}><AdminConsole /></ProtectedRoute>} />
           <Route path="/audit" element={<ProtectedRoute roles={routeAccess.audit}><AuditLog /></ProtectedRoute>} />
           <Route path="/unauthorized" element={<Unauthorized />} />

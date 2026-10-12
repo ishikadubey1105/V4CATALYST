@@ -32,7 +32,7 @@ export default function Board() {
   return (
     <>
       <PageHeader title="Pipeline board" sub="Drag a case card to change its stage. Stage 4 (Handoff) is controlled by the forwarding workflow." />
-      <div className="grid grid-cols-[repeat(5,minmax(230px,1fr))] gap-3 overflow-x-auto pb-4">
+      <div className="grid grid-cols-[repeat(5,minmax(200px,1fr))] gap-3 overflow-x-auto pb-4">
         {stages.map((st, i) => {
           const col = visible.filter((c) => c.stage === st.key)
           return (

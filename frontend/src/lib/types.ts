@@ -78,7 +78,7 @@ export interface Handoff {
   acks: Record<SectionKey, boolean>
 }
 
-export type NotificationKind = 'handoff' | 'question' | 'overdue' | 'accepted' | 'rejected' | 'force' | 'answer' | 'assigned'
+export type NotificationKind = 'handoff' | 'question' | 'overdue' | 'accepted' | 'rejected' | 'force' | 'answer' | 'assigned' | 'reminder' | 'escalation'
 
 export interface Notification {
   id: string
