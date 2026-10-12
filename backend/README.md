@@ -25,14 +25,42 @@ VITE_API_MODE=http
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
+## Database
+
+SQLite (`backend/baton.db`) is the zero-setup default. **PostgreSQL** is supported for deployment: set
+`DATABASE_URL` to the URL your host gives you (Render, Neon, Supabase, Railway…) — `postgres://` URLs are accepted
+as-is; add `?sslmode=require` if the host needs SSL.
+
+The schema is managed by **Alembic** migrations (`migrations/versions/`). They run automatically on every startup,
+so deploying new code also updates the database. A database created before migrations existed is detected and
+adopted without touching its data.
+
+| Command (run in `backend/`) | What it does |
+|---|---|
+| `python manage.py status` | Which database, schema revision, row counts |
+| `python manage.py migrate` | Apply pending migrations (startup does this too) |
+| `python manage.py seed` | Load the demo data into an empty database |
+| `python manage.py create-admin USER "Name" EMAIL` | First admin for a real deployment (`SEED_DEMO=false`); prints a one-time password |
+| `python manage.py reset --yes` | **Deletes everything**, re-creates the schema, reloads the demo data |
+
+**Changing the schema:** edit `app/models.py`, then
+`python -m alembic revision --autogenerate -m "what changed"`, review the generated file in `migrations/versions/`,
+and commit it. `tests/test_migrations.py` fails if a model changes without a migration.
+
+Models declare foreign keys without ORM `relationship()`s, so SQLAlchemy does not order inserts parent-first:
+when one request creates a parent row and a row pointing at it, `db.flush()` after adding the parent
+(see `create_case`). Foreign keys are enforced on SQLite too, so tests catch this before Postgres does.
+
 ## Test
 
 ```bash
-python -m pytest -q
+python -m pytest -q                                                    # SQLite, throwaway file
+TEST_DATABASE_URL=postgresql://user:pass@localhost/baton_test python -m pytest -q   # PostgreSQL (wipes that DB)
 ```
 
-The suite runs the README demo script end to end (blocked forward → fix gaps → submit → ack → accept) plus every
-error code in the contract, against a throwaway database.
+The suite builds its schema through the migrations, runs the README demo script end to end (blocked forward →
+fix gaps → submit → ack → accept), every error code in the contract, and migration checks (models match
+migrations, legacy-database adoption, downgrade/upgrade round trip).
 
 ## Layout
 
@@ -42,6 +70,8 @@ error code in the contract, against a throwaway database.
 | `app/routers/*.py` | One module per area: `auth`, `sync`, `cases` (+ tasks, notes, decisions, documents, questions), `handoffs`, `notifications`, `employees` |
 | `app/rules.py` | Port of `permissions.ts` + `completeness.ts`: case roles, visibility, stage rules, 8-check gate |
 | `app/models.py` | SQLAlchemy tables |
+| `app/migrate.py`, `migrations/` | Alembic setup and migration scripts |
+| `manage.py` | Database admin commands (status, migrate, seed, create-admin, reset) |
 | `app/serializers.py` | Rows → camelCase JSON matching `frontend/src/lib/types.ts` |
 | `app/schemas.py` | Request DTOs (Pydantic) matching `contracts.ts` |
 | `app/deadlines.py` | Overdue-task watcher (runs every `DEADLINE_INTERVAL_SECONDS`) |
@@ -56,6 +86,4 @@ error code in the contract, against a throwaway database.
 - **`PATCH /tasks/:id`**: `null` for `ownerId` / `due` clears the field.
 - **Extra routes** beyond the contract: `GET /cases/:id` (logs `access.denied` when refused),
   `GET /documents/:id/download` (uploaded files are stored under `UPLOAD_DIR`), `GET /health`.
-- **Database**: set `DATABASE_URL` to any SQLAlchemy URL (e.g. Postgres + the `psycopg` driver). Tables are created on
-  startup; add Alembic before the schema starts changing in production.
 - Handoff **drafts** stay client-side (as in the frontend); only the submit goes to the server.

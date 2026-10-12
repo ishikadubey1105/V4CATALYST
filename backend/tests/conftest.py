@@ -2,8 +2,10 @@ import os
 import tempfile
 
 # Configure before the app is imported: throwaway database and upload dir, no background watcher.
+# Set TEST_DATABASE_URL (e.g. postgresql://user:pass@localhost/baton_test) to run the suite on Postgres.
+# WARNING: the tests wipe that database.
 _tmp = tempfile.mkdtemp(prefix="baton-test-")
-os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
+os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL") or f"sqlite:///{_tmp}/test.db"
 os.environ["UPLOAD_DIR"] = f"{_tmp}/uploads"
 os.environ["DEADLINE_INTERVAL_SECONDS"] = "0"
 
@@ -12,6 +14,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app.db import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
+from app.migrate import upgrade_db  # noqa: E402
 from app.seed import seed  # noqa: E402
 
 PASSWORDS = {
@@ -20,10 +23,17 @@ PASSWORDS = {
 }
 
 
+def wipe_database() -> None:
+    with engine.begin() as conn:
+        Base.metadata.drop_all(conn)
+        conn.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
+
+
 @pytest.fixture()
 def client():
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+    # Schema comes from the migrations (not create_all), so every test also exercises them.
+    wipe_database()
+    upgrade_db()
     with SessionLocal() as db:
         seed(db)
     with TestClient(app) as c:

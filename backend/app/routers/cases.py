@@ -43,6 +43,7 @@ def create_case(body: CreateCaseReq, user: CurrentUser, db: Db):
         created_by=user.id, received_at=at, updated_at=at,
     )
     db.add(c)
+    db.flush()  # insert the case before the ownership row that references it (no relationship() to order them)
     db.add(m.Ownership(case_id=c.id, user_id=owner.id, from_at=at, via="created"))
     if owner.id != user.id:
         notify(db, owner.id, "assigned", f"New complaint assigned: {c.code}", f'{user.name} registered "{c.title}" and made you owner', f"/cases/{c.id}")
@@ -226,7 +227,7 @@ async def upload_documents(case_id: str, user: CurrentUser, db: Db, files: list[
                         raise ApiError(413, "FILE_TOO_LARGE", f"{name} is larger than 25 MB.")
                     out.write(chunk)
             db.add(m.Document(id=doc_id, case_id=c.id, name=name, kind=_kind(name), size=size, by=user.id, at=m.now(),
-                              storage_path=str(path), content_type=f.content_type))
+                              storage_path=str(path), content_type=(f.content_type or "")[:120] or None))
             log(db, "document.uploaded", name, c.id, user.id)
     except Exception:
         db.rollback()

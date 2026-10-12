@@ -30,7 +30,7 @@ RELOAD = ["--reload"] if "--reload" in sys.argv[1:] else []
 
 def ensure_deps() -> None:
     try:
-        import fastapi, sqlalchemy, uvicorn, multipart  # noqa: F401, E401
+        import alembic, fastapi, multipart, psycopg, sqlalchemy, uvicorn  # noqa: F401, E401
     except ImportError:
         print("[setup] installing backend requirements...")
         subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(BACKEND / "requirements.txt")], check=True)

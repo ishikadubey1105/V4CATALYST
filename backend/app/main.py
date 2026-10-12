@@ -15,9 +15,10 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .config import settings
-from .db import Base, SessionLocal, engine
+from .db import SessionLocal
 from .deadlines import deadline_loop
 from .errors import ApiError
+from .migrate import upgrade_db
 from .routers import auth, cases, employees, handoffs, notifications, sync
 from .seed import seed
 
@@ -26,7 +27,7 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(engine)
+    upgrade_db()  # Alembic migrations; also adopts databases created before migrations existed
     if settings.seed_demo:
         with SessionLocal() as db:
             if seed(db):
