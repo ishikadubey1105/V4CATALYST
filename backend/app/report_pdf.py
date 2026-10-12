@@ -26,8 +26,8 @@ from reportlab.platypus import Image, KeepTogether, Paragraph, SimpleDocTemplate
 _installed = {f.name for f in font_manager.fontManager.ttflist}
 matplotlib.rcParams["font.family"] = next((f for f in ("Arial", "Helvetica", "Liberation Sans") if f in _installed), "DejaVu Sans")
 
-SERIES_1, SERIES_2 = "#55701a", "#c08040"  # olive / caramel, validated as a pair (colour-blind safe) on white
-INK, BODY, MUTED, RULE, SHADE = "#1f1a15", "#3e3329", "#7a6d5d", "#d9d1c5", "#f4f1ec"
+SERIES_1, SERIES_2 = "#2f5d8a", "#c9822b"  # steel blue / amber: a colour-blind-safe pair on white, matching the app
+INK, BODY, MUTED, RULE, SHADE = "#222325", "#3a3c3e", "#7a7c7f", "#d5d7d8", "#eef0f1"  # Nardo grey neutrals
 STAGES = {"received": "Received", "investigation": "Investigation", "action": "Action", "handoff": "Handoff", "resolved": "Resolved"}
 
 PAGE_W, PAGE_H = A4
@@ -89,10 +89,10 @@ def _axes(fig: Figure, rect=(0.075, 0.17, 0.9, 0.74)):
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
     for side in ("left", "bottom"):
-        ax.spines[side].set_color("#9b8f80")
+        ax.spines[side].set_color("#95979a")
         ax.spines[side].set_linewidth(0.6)
     ax.tick_params(colors=BODY, labelsize=6.8, length=2.5, width=0.5)
-    ax.grid(axis="y", color="#e7e1d8", linewidth=0.5)
+    ax.grid(axis="y", color="#e4e6e7", linewidth=0.5)
     ax.set_axisbelow(True)
     ax.yaxis.set_major_locator(MaxNLocator(integer=True, nbins=5))
     return ax
@@ -119,8 +119,8 @@ def volume_chart(r: dict, w_mm: float, h_mm: float) -> Image:
     ax = _axes(fig)
     x = range(len(t))
     w = 0.36
-    ax.bar([i - w / 2 for i in x], [b["received"] for b in t], w, color=SERIES_1, label="Received", linewidth=0)
-    ax.bar([i + w / 2 for i in x], [b["resolved"] for b in t], w, color=SERIES_2, label="Resolved", linewidth=0)
+    ax.bar([i - w / 2 for i in x], [b["received"] for b in t], w, color=SERIES_1, label="Registered", linewidth=0)
+    ax.bar([i + w / 2 for i in x], [b["resolved"] for b in t], w, color=SERIES_2, label="Closed", linewidth=0)
     _ticks(ax, [b["label"] for b in t])
     ax.set_ylabel("Complaints", fontsize=7, color=BODY)
     ax.legend(loc="upper left", bbox_to_anchor=(0, 1.13), ncols=2, frameon=False, fontsize=7, handlelength=1.1, columnspacing=1.4)
@@ -219,28 +219,32 @@ def findings(r: dict, alerts: list[dict] | None) -> list[str]:
 
 
 DEFINITIONS = [
-    ("Received", "cases whose received date falls in the period."),
-    ("Resolved", "cases whose first move to the Resolved stage, as recorded in the audit log, falls in the period."),
+    ("Registered", "cases whose received date falls in the period."),
+    ("Closed (resolved)", "cases whose first move to the Resolved stage, as recorded in the audit log, falls in the period."),
     ("Time to resolve", "from the received date to that first resolution, in calendar days; median and mean are reported."),
     ("Open at period end", "cases received before the end of the period and not resolved by then (the backlog)."),
     ("Forward acceptance", "accepted forwards as a share of forwards decided (accepted or sent back) in the period."),
     ("Deadline missed", "an open task passing its due date, recorded once per deadline by the deadline watcher."),
     ("Escalation", "a task still open 48 hours after its due date; every administrator is notified."),
     ("Open risks", "critical and high alerts at the moment the report is generated; only shown for the current period."),
+    ("Reports downloaded", "report files (PDF or CSV) downloaded from Thread during the period; in-page previews are not counted."),
 ]
+
+CASE_ROWS = {"week": 40, "month": 25}  # case lists in the PDF; the CSV has them all
 
 
 # ---------- Document ----------
 
 def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> bytes:
     period = r["period"]
-    yearly = period["kind"] == "year"
+    kind = period["kind"]
+    yearly = kind == "year"
     start = datetime.fromisoformat(period["start"].replace("Z", "+00:00"))
     end = datetime.fromisoformat(period["end"].replace("Z", "+00:00"))
     generated = datetime.fromisoformat(r["generatedAt"].replace("Z", "+00:00"))
     in_progress = start <= generated < end
     k, p, pl = r["kpis"], r["previous"], period["previousLabel"]
-    full_label = f"{start:%B %Y}" if not yearly else period["label"]
+    full_label = {"week": f"{period['label']} ({period['span']})", "month": f"{start:%B %Y}"}.get(kind, period["label"])
 
     def frame(canvas, doc):
         canvas.saveState()
@@ -259,7 +263,7 @@ def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> 
         canvas.restoreState()
 
     story: list = [
-        Paragraph("COMPLAINT HANDLING · " + ("ANNUAL REPORT" if yearly else "MONTHLY REPORT"), S["kicker"]),
+        Paragraph("COMPLAINT HANDLING · " + {"week": "WEEKLY", "month": "MONTHLY"}.get(kind, "ANNUAL") + " REPORT", S["kicker"]),
         Paragraph("Complaint Handling Report", S["title"]),
         Paragraph(full_label + (" — year to date" if yearly and in_progress else ""), S["subtitle"]),
         Spacer(1, 5 * mm),
@@ -286,8 +290,8 @@ def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> 
 
     # Key metrics
     metrics = [
-        ("Complaints received", k["received"], p["received"], True, ""),
-        ("Complaints resolved", k["resolved"], p["resolved"], True, ""),
+        ("Complaints registered", k["received"], p["received"], True, ""),
+        ("Complaints closed (resolved)", k["resolved"], p["resolved"], True, ""),
         ("Open now (backlog)" if in_progress else "Open at period end (backlog)", k["openAtEnd"], p["openAtEnd"], True, ""),
         ("Median time to resolve (days)", k["medianResolutionDays"], p["medianResolutionDays"], False, ""),
         ("Mean time to resolve (days)", k["avgResolutionDays"], p["avgResolutionDays"], False, ""),
@@ -296,6 +300,7 @@ def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> 
         ("Forward acceptance rate", k["acceptanceRate"], p["acceptanceRate"], False, "%"),
         ("Deadlines missed", k["overdueEvents"], p["overdueEvents"], True, ""),
         ("Escalated to administrators", k["escalations"], p["escalations"], True, ""),
+        ("Reports downloaded", k.get("reportsDownloaded"), p.get("reportsDownloaded"), True, ""),
     ]
     rows = [[name, _num(v, u), _num(pv, u), _change(v, pv, pct, u)] for name, v, pv, pct, u in metrics]
     story += [Spacer(1, 2 * mm), KeepTogether([
@@ -305,10 +310,10 @@ def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> 
 
     # 2. Volume
     unit = "month" if yearly else "day"
-    vol_text = (f"{k['received']} complaints were received and {k['resolved']} resolved in {period['label']}, against "
+    vol_text = (f"{k['received']} complaints were registered and {k['resolved']} closed in {period['label']}, against "
                 f"{p['received']} and {p['resolved']} in {pl}. The backlog stood at {k['openAtEnd']} open cases {'at the time of writing' if in_progress else 'at the end of the period'}.")
     story += _section(2, "Volume and backlog", Paragraph(vol_text, S["body"]),
-                      _image_with_caption(volume_chart(r, CONTENT_W / mm, 58), f"Figure 1. Complaints received and resolved per {unit}, {period['label']}."))
+                      _image_with_caption(volume_chart(r, CONTENT_W / mm, 58), f"Figure 1. Complaints registered and closed per {unit}, {period['label']}."))
     story.append(KeepTogether([backlog_chart(r, CONTENT_W / mm, 46),
                                Paragraph(f"Figure 2. Open cases at the end of each {unit} (backlog), {period['label']}.", S["caption"])]))
     cats = r["byCategory"]
@@ -317,7 +322,7 @@ def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> 
         crow = [[c["key"], c["count"], f"{round(100 * c['count'] / total)}%"] for c in cats] + [["Total", total, "100%"]]
         chan = {c["key"]: c["count"] for c in r["byChannel"]}
         story.append(KeepTogether([
-            Paragraph("Table 2.&nbsp;&nbsp;Complaints received by category", S["head"]), Spacer(1, 1.5 * mm),
+            Paragraph("Table 2.&nbsp;&nbsp;Complaints registered by category", S["head"]), Spacer(1, 1.5 * mm),
             table(["Category", "Complaints", "Share"], crow, [CONTENT_W * 0.6, CONTENT_W * 0.2, CONTENT_W * 0.2], total_row=True),
             Paragraph("Channels: " + ", ".join(f"{name.lower()} {n}" for name, n in chan.items()) + ".", S["note"]),
         ]))
@@ -374,6 +379,27 @@ def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> 
                                     else "There were no critical or high items outstanding when this report was generated.", S["body"]),
                           *( [risk] if risk else []))
 
+    # 7. Case lists (weekly and monthly reports)
+    limit = CASE_ROWS.get(kind)
+    reg, closed = r.get("casesRegistered", []), r.get("casesClosed", [])
+    if limit:
+        def more(items: list) -> list:
+            return [Paragraph(f"Showing {limit} of {len(items)}; the CSV export lists every case.", S["note"])] if len(items) > limit else []
+        reg_t = table(["Case", "Title", "Category", "Priority", "Owner", "Registered"],
+                      [[c["code"], c["title"], c["category"], c["priority"].capitalize(), c["owner"], _day(c["receivedAt"])] for c in reg[:limit]],
+                      [CONTENT_W * 0.12, CONTENT_W * 0.36, CONTENT_W * 0.14, CONTENT_W * 0.1, CONTENT_W * 0.16, CONTENT_W * 0.12], numeric_from=6) if reg else None
+        story += _section(7 if alerts is not None else 6, f"Cases registered and closed in {period['label']}",
+                          Paragraph(f"{len(reg)} case{'s' if len(reg) != 1 else ''} registered and {len(closed)} closed in the period.", S["body"]),
+                          *([reg_t] if reg_t else []), *more(reg))
+        if closed:
+            story.append(KeepTogether([
+                Spacer(1, 3 * mm), Paragraph("Table 4.&nbsp;&nbsp;Cases closed", S["head"]), Spacer(1, 1.5 * mm),
+                table(["Case", "Title", "Priority", "Closed by", "Closed", "Days"],
+                      [[c["code"], c["title"], c["priority"].capitalize(), c["resolvedBy"], _day(c["resolvedAt"]), _num(c["daysToResolve"])] for c in closed[:limit]],
+                      [CONTENT_W * 0.12, CONTENT_W * 0.38, CONTENT_W * 0.1, CONTENT_W * 0.18, CONTENT_W * 0.12, CONTENT_W * 0.1], numeric_from=5),
+                *more(closed),
+            ]))
+
     # Appendix
     story += [Spacer(1, 4 * mm), KeepTogether([
         Paragraph("Appendix A.&nbsp;&nbsp;Definitions and method", S["h1"]),
@@ -391,3 +417,7 @@ def render_report_pdf(r: dict, alerts: list[dict] | None, generated_by: str) -> 
 
 def _image_with_caption(img: Image, caption: str) -> KeepTogether:
     return KeepTogether([img, Paragraph(caption, S["caption"])])
+
+
+def _day(iso_at: str) -> str:
+    return f"{datetime.fromisoformat(iso_at.replace('Z', '+00:00')):%d %b}"

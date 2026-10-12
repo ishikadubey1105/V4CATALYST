@@ -11,12 +11,6 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     seed_demo: bool = True
 
-    # AI handoff assistant. Without a key the assistant falls back to a template draft built from the same data.
-    groq_api_key: str | None = None
-    ai_model: str = "openai/gpt-oss-120b"  # any Groq chat model; gpt-oss / qwen get strict JSON-schema output
-    ai_effort: str = "low"  # reasoning effort for gpt-oss models: low keeps the demo fast; medium/high for richer drafts
-    ai_timeout_seconds: float = 60.0
-
     # Alert system thresholds
     alert_due_soon_hours: int = 24        # remind the assignee this long before a deadline
     alert_escalate_after_hours: int = 48  # overdue this long -> critical, and every admin is notified
