@@ -201,3 +201,13 @@ def test_csv_export_and_download_metric(client, login):
     assert {b["key"]: b["count"] for b in d["byFormat"]} == {"PDF": 1, "CSV": 1}
     assert d["recent"][0]["by"] == "Meera Iyer" and d["recent"][0]["format"] == "PDF"
     assert report(client, admin, period="week").json()["kpis"]["reportsDownloaded"] == 2
+
+
+def test_cron_deadlines_endpoint(client, monkeypatch):
+    from app.config import settings
+    assert client.get("/api/cron/deadlines").json()["code"] == "CRON_DISABLED"
+    monkeypatch.setattr(settings, "cron_secret", "s3cret")
+    assert client.get("/api/cron/deadlines", headers={"Authorization": "Bearer wrong"}).status_code == 401
+    r = client.get("/api/cron/deadlines", headers={"Authorization": "Bearer s3cret"}).json()
+    assert r["ok"] and r["overdue"] == 2  # t9, t10 in the seed
+    assert client.get("/api/cron/deadlines", headers={"Authorization": "Bearer s3cret"}).json()["overdue"] == 0  # once each

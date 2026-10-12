@@ -7,6 +7,8 @@ from fastapi.responses import Response
 
 from .. import models as m
 from ..alerts import compute_alerts, summarize
+from ..config import settings
+from ..deadlines import run_watcher_if_due
 from ..deps import CurrentUser, Db
 from ..errors import bad_request, forbidden
 from ..report_pdf import render_report_pdf
@@ -19,6 +21,8 @@ router = APIRouter(tags=["insights"])
 @router.get("/alerts")
 def alerts(user: CurrentUser, db: Db):
     """Live alerts: overdue / due-soon tasks, waiting forwards, unanswered questions, stale cases (scoped to the caller)."""
+    if settings.serverless:
+        run_watcher_if_due()
     items = compute_alerts(db, user)
     return {"alerts": items, "counts": summarize(items)}
 

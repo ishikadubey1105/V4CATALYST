@@ -1,0 +1,11 @@
+# Python packages for the Vercel function (api/index.py). Runtime only: tests and the local dev server are in
+# backend/requirements.txt. Keep the two in step when adding a dependency.
+fastapi>=0.115
+SQLAlchemy>=2.0
+alembic>=1.13
+reportlab>=4.0
+matplotlib>=3.8
+psycopg[binary]>=3.2
+pydantic>=2.7
+pydantic-settings>=2.3
+python-multipart>=0.0.9
