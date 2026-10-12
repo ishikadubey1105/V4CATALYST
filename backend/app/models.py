@@ -114,7 +114,7 @@ class Document(Base):
     size: Mapped[int] = mapped_column(Integer)
     by: Mapped[str] = mapped_column(ForeignKey("employees.id"))
     at: Mapped[datetime] = mapped_column(UtcDateTime, default=now)
-    storage_path: Mapped[str | None] = mapped_column(String(500), nullable=True)  # None for seeded rows
+    storage_path: Mapped[str | None] = mapped_column(Text, nullable=True)  # None for seeded rows
     content_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
 
@@ -124,7 +124,7 @@ class Task(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     case_id: Mapped[str] = mapped_column(ForeignKey("cases.id"), index=True)
     title: Mapped[str] = mapped_column(String(300))
-    owner_id: Mapped[str | None] = mapped_column(ForeignKey("employees.id"), nullable=True)
+    owner_id: Mapped[str | None] = mapped_column(ForeignKey("employees.id"), nullable=True, index=True)  # visibility lookups
     due: Mapped[datetime | None] = mapped_column(UtcDateTime, nullable=True)
     done: Mapped[bool] = mapped_column(Boolean, default=False)
     overdue_notified: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -179,7 +179,7 @@ class Notification(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("employees.id"), index=True)
     kind: Mapped[str] = mapped_column(String(16))
-    title: Mapped[str] = mapped_column(String(300))
+    title: Mapped[str] = mapped_column(Text)  # built from task/case titles, so it can exceed their own limits
     body: Mapped[str] = mapped_column(Text)
     at: Mapped[datetime] = mapped_column(UtcDateTime, default=now)
     read: Mapped[bool] = mapped_column(Boolean, default=False)

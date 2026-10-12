@@ -12,6 +12,8 @@ __pycache__/
 .env
 *.local
 *.db
+*.db-wal
+*.db-shm
 backend/uploads/
 
 # Editor / OS

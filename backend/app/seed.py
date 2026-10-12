@@ -44,6 +44,9 @@ def seed(db: Session) -> bool:
         db.add(m.Employee(id=eid, username=username, name=name, email=f"{username}@corp.local", department=dept, title=title,
                           org_role=role, active=True, tone=tone, password_hash=hash_password(pw),
                           created_at=now - timedelta(days=365) + timedelta(seconds=i)))
+    # Models declare foreign keys but no relationship(), so SQLAlchemy doesn't order inserts parent-first:
+    # flush each level before adding rows that point at it.
+    db.flush()
 
     cases = [
         ("c1", "CMP-1042", "Repeated late deliveries to Nimbus Retail stores", "Nimbus Retail (B2B)", "Email", "Delivery", "high", "investigation", None, "e1", "e5", days_ago(21), hours_ago(3),
