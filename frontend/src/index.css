@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/*
+ * Nardo grey theme. The zinc scale is re-tinted to Nardo (#686A6C at 600), so every zinc-* utility in the
+ * app inherits the palette. Status colours (red/amber/green/blue) are kept for meaning only.
+ */
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-zinc-50: #f4f5f5;
+  --color-zinc-100: #e9eaeb;
+  --color-zinc-200: #d5d7d8;
+  --color-zinc-300: #b9bbbd;
+  --color-zinc-400: #95979a;
+  --color-zinc-500: #7a7c7f;
+  --color-zinc-600: #686a6c;
+  --color-zinc-700: #55575a;
+  --color-zinc-800: #434548;
+  --color-zinc-900: #333537;
+  --color-zinc-950: #222325;
+}
+
+@keyframes flash { 0%, 100% { background-color: transparent } 30% { background-color: rgb(254 243 199) } }
+@keyframes shake { 0%, 100% { transform: translateX(0) } 25% { transform: translateX(-4px) } 75% { transform: translateX(4px) } }
+.highlight-row { animation: flash 1.4s ease-in-out 2; outline: 2px solid rgb(217 119 6); outline-offset: -2px; }
+
+/* n8n-style canvas grid */
+.flow-grid {
+  background-color: var(--color-zinc-100);
+  background-image: radial-gradient(circle, var(--color-zinc-300) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+body { @apply bg-zinc-100 text-zinc-900 antialiased; font-size: 13px; }
+
+@media print {
+  aside, header, .no-print { display: none !important; }
+  main { max-width: none !important; padding: 0 !important; }
+}
