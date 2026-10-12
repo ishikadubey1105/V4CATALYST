@@ -31,6 +31,7 @@ export async function loadCaseFull(caseId: string) {
       currentOwner: { select: { id: true, name: true, title: true, team: true } },
       createdBy: { select: { id: true, name: true } },
       handoffs: { orderBy: { initiatedAt: "desc" } },
+      updates: { orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }] },
     },
   });
 }
@@ -108,6 +109,13 @@ export function buildSnapshot(
       note: a.note,
     })),
     documents: c.documents.map((d) => ({ id: d.id, filename: d.filename, docClass: d.docClass, sha256: d.sha256 })),
+    updates: c.updates.slice(0, 20).map((u) => ({
+      id: u.id,
+      kind: u.kind,
+      body: u.body,
+      author: name(u.authorId),
+      occurredAt: u.occurredAt,
+    })),
     readiness: {
       score: readiness.score,
       warnings: readiness.warnings.map((w) => ({ code: w.code, message: w.message, waived: w.waived })),

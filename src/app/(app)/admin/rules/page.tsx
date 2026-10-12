@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/client";
 import { useMe } from "@/components/AppShell";
-import { Badge, Button, Card, ErrorNote, PageLoading, cx } from "@/components/ui";
+import { Clock } from "lucide-react";
+import { Badge, Button, Card, ErrorNote, PageHeader, PageLoading, cx } from "@/components/ui";
 
 type Rule = { code: string; label: string; severity: string; weight: number; enabled: boolean };
 
@@ -37,15 +38,15 @@ export default function RulesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Gate policy</h1>
-          <p className="text-sm text-muted">
-            The checks every case passes before it can change hands. Policy is data, not code: {admin ? "switch a rule off or reweight it and every gate updates." : "only an admin can change it."}
-          </p>
-        </div>
-        <Button onClick={runSweep}>Run overdue sweep</Button>
-      </div>
+      <PageHeader
+        title="Gate policy"
+        sub={`The checks every case passes before it can change hands. Policy is data, not code: ${admin ? "switch a rule off or reweight it and every gate updates." : "only an admin can change it."}`}
+        actions={
+          <Button icon={Clock} onClick={runSweep}>
+            Run overdue sweep
+          </Button>
+        }
+      />
       {sweep && <p className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">{sweep}</p>}
       <ErrorNote error={error} />
       {(["BLOCKER", "WARNING"] as const).map((sev) => (

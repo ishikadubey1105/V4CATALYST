@@ -4,7 +4,7 @@ import { badRequest, route } from "@/lib/http";
 import { appendLog } from "@/lib/audit";
 import { sha256 } from "@/lib/canon";
 import { DOC_CLASSES } from "@/lib/domain";
-import { ALLOWED_MIME, MAX_UPLOAD_BYTES, saveFile } from "@/lib/storage";
+import { ALLOWED_MIME, MAX_UPLOAD_BYTES, contentMatchesType, saveFile } from "@/lib/storage";
 
 export const POST = route(async (req, { params }: { params: Promise<{ id: string }> }) => {
   const user = await requireUser();
@@ -21,6 +21,9 @@ export const POST = route(async (req, { params }: { params: Promise<{ id: string
   if (!ALLOWED_MIME.has(file.type)) throw badRequest(`File type ${file.type || "unknown"} is not allowed.`);
 
   const bytes = Buffer.from(await file.arrayBuffer());
+  if (!contentMatchesType(bytes, file.type)) {
+    throw badRequest("The file's contents do not match its type. It may be renamed or corrupted.");
+  }
   // Hashed at receipt: proves later that the receiver got the same bytes.
   const digest = sha256(bytes);
   const storageKey = await saveFile(bytes, file.name);

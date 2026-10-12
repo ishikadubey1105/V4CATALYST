@@ -21,6 +21,8 @@ export const POST = route(async (req, { params }: { params: Promise<{ id: string
   if (toUserId === c.currentOwnerId) throw badRequest("That person already owns this case.");
   const target = await db.user.findUnique({ where: { id: toUserId } });
   if (!target || target.role === "AUDITOR") throw badRequest("Pick a valid new owner.");
+  // A manager's override reaches only their own team's people.
+  if (user.role !== "ADMIN" && target.team !== c.team) throw badRequest("A manager can only reassign within the case's team.");
 
   const readiness = await readinessFor(id, toUserId);
   const now = new Date();

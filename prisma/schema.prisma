@@ -19,6 +19,10 @@ model User {
   team         String
   title        String?
   createdAt    DateTime @default(now())
+  // Brute-force protection and server-side session revocation.
+  failedLogins   Int       @default(0)
+  lockedUntil    DateTime?
+  sessionVersion Int       @default(0)
 
   ownedCases    Case[]         @relation("CaseOwner")
   createdCases  Case[]         @relation("CaseCreator")
@@ -50,6 +54,7 @@ model Case {
   actions      ActionItem[]
   documents    Document[]
   handoffs     Handoff[]
+  updates      CaseUpdate[]
   activity     ActivityLog[]
   ownership    OwnershipPeriod[]
 
@@ -147,6 +152,22 @@ model Handoff {
 
   @@index([caseId, state])
   @@index([toUserId, state])
+}
+
+// Running log of what happens on a live case, posted by anyone working on it.
+// Append-only like the activity chain: an update is never edited, only followed.
+model CaseUpdate {
+  id         String   @id @default(cuid())
+  caseId     String
+  kind       String // UPDATE | EVENT | ESCALATION
+  body       String
+  occurredAt DateTime // when it happened in the world; may be earlier than createdAt
+  authorId   String
+  createdAt  DateTime
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, occurredAt])
 }
 
 // Append-only. There is no code path that updates or deletes a row.

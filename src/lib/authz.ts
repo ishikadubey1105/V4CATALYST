@@ -1,19 +1,25 @@
 import { cookies } from "next/headers";
-import type { Case, User } from "@prisma/client";
+import type { Case, Prisma, User } from "@prisma/client";
 import { db } from "./db";
-import { SESSION_COOKIE, verifySession } from "./session";
+import { readSessionToken, verifySession } from "./session";
 import { forbidden, notFound, unauthorized } from "./http";
 
 export type Actor = Pick<User, "id" | "name" | "email" | "role" | "team" | "title">;
 
 export async function currentUser(): Promise<Actor | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const jar = await cookies();
+  const token = readSessionToken((n) => jar.get(n));
   const claims = await verifySession(token);
   if (!claims) return null;
-  return db.user.findUnique({
+  const user = await db.user.findUnique({
     where: { id: claims.sub },
-    select: { id: true, name: true, email: true, role: true, team: true, title: true },
+    select: { id: true, name: true, email: true, role: true, team: true, title: true, sessionVersion: true },
   });
+  // A token from before the last sign-out is dead even if it has not expired.
+  if (!user || user.sessionVersion !== claims.ver) return null;
+  const { sessionVersion: _v, ...actor } = user;
+  void _v;
+  return actor;
 }
 
 export async function requireUser(): Promise<Actor> {
@@ -80,6 +86,21 @@ export async function authorizeCase(user: Actor, caseId: string, action: CaseAct
       if (user.role === "ADMIN" || (user.role === "MANAGER" && c.team === user.team)) return c;
       throw forbidden("Only a manager of this team can reassign a case.");
   }
+}
+
+// The single definition of which cases a user may see, as a query filter. Used
+// wherever cases are listed, so lists and per-case checks cannot drift apart.
+export function visibleCasesWhere(user: Actor): Prisma.CaseWhereInput {
+  if (user.role === "ADMIN" || user.role === "AUDITOR") return {};
+  if (user.role === "MANAGER") return { team: user.team };
+  return {
+    OR: [
+      { currentOwnerId: user.id },
+      { ownership: { some: { userId: user.id } } },
+      { handoffs: { some: { OR: [{ fromUserId: user.id }, { toUserId: user.id }] } } },
+      { actions: { some: { assigneeId: user.id } } },
+    ],
+  };
 }
 
 export function publicUser(u: Pick<User, "id" | "name" | "role" | "team" | "title">) {

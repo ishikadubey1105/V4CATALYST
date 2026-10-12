@@ -15,6 +15,7 @@ export type Action = {
   completedAt: string | null;
 };
 export type Doc = { id: string; filename: string; docClass: string; mimeType: string; sizeBytes: number; sha256: string; uploadedById: string; uploadedAt: string };
+export type CaseUpdate = { id: string; kind: string; body: string; occurredAt: string; authorId: string; createdAt: string };
 export type HandoffRow = { id: string; state: string; fromUserId: string; toUserId: string; reason: string; initiatedAt: string; submittedAt: string | null; respondedAt: string | null };
 
 export type CaseData = {
@@ -35,11 +36,13 @@ export type CaseData = {
     actions: Action[];
     documents: Doc[];
     handoffs: HandoffRow[];
+    updates: CaseUpdate[];
   };
   activeHandoff: { id: string; state: string; toUserId: string } | null;
   names: Record<string, string>;
+  roles: Record<string, string>;
   readiness: Readiness;
-  permissions: { edit: boolean; handoff: boolean; reassign: boolean; isOwner: boolean };
+  permissions: { edit: boolean; handoff: boolean; reassign: boolean; isOwner: boolean; postUpdate: boolean };
 };
 
 export type TabProps = {

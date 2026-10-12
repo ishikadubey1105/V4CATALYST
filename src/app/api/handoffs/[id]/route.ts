@@ -25,6 +25,10 @@ export const GET = route(async (_req, { params }: { params: Promise<{ id: string
   const snapshotIntact = h.snapshotJson ? sha256(h.snapshotJson) === h.snapshotHash : null;
 
   const owner = await db.case.findUniqueOrThrow({ where: { id: h.caseId }, select: { title: true, currentOwnerId: true, team: true, status: true } });
+  // What happened on the case after the package was frozen.
+  const updatesSince = h.submittedAt
+    ? await db.caseUpdate.findMany({ where: { caseId: h.caseId, createdAt: { gt: h.submittedAt } }, orderBy: { occurredAt: "desc" } })
+    : [];
   return Response.json({
     handoff: { ...h, snapshotJson: undefined, findingsJson: undefined, case: undefined },
     case: { id: h.caseId, ...owner },
@@ -32,6 +36,7 @@ export const GET = route(async (_req, { params }: { params: Promise<{ id: string
     waivers,
     snapshot,
     snapshotIntact,
+    updatesSince,
     names,
     permissions: {
       manage: h.state === "DRAFT" && canEditCase(user, h.case),

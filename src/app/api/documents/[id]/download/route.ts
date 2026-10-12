@@ -19,7 +19,9 @@ export const GET = route(async (_req, { params }: { params: Promise<{ id: string
   return new Response(new Uint8Array(bytes), {
     headers: {
       "Content-Type": doc.mimeType,
-      "Content-Disposition": `attachment; filename="${encodeURIComponent(doc.filename)}"`,
+      // ASCII fallback plus RFC 5987 form; neither can break out of the header.
+      "Content-Disposition": `attachment; filename="${doc.filename.replace(/[^\x20-\x7e]|["\\]/g, "_")}"; filename*=UTF-8''${encodeURIComponent(doc.filename)}`,
+      "Cache-Control": "private, no-store",
       "X-Content-SHA256": doc.sha256,
       "X-Content-Type-Options": "nosniff",
     },

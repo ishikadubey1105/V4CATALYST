@@ -19,10 +19,28 @@ export const badRequest = (msg: string, details?: unknown) => new HttpError(400,
 
 type Handler<C> = (req: Request, ctx: C) => Promise<Response>;
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+// Defence in depth on top of SameSite=Lax cookies: a state-changing request
+// that carries an Origin must come from this site. Requests with no Origin
+// (server-to-server, cron, scripts) carry no browser cookies to abuse.
+function crossSite(req: Request): boolean {
+  if (SAFE_METHODS.has(req.method)) return false;
+  const origin = req.headers.get("origin");
+  if (!origin) return false;
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  try {
+    return new URL(origin).host !== host;
+  } catch {
+    return true;
+  }
+}
+
 // Wraps a route handler so every error leaves as { error: { code, message, details? } }.
 export function route<C>(fn: Handler<C>): Handler<C> {
   return async (req, ctx) => {
     try {
+      if (crossSite(req)) throw new HttpError(403, "CROSS_SITE", "Cross-site requests are not allowed.");
       return await fn(req, ctx);
     } catch (err) {
       if (err instanceof HttpError) {

@@ -33,6 +33,7 @@ const VERBS: Record<string, string> = {
   "handoff.accepted": "accepted the handoff",
   "handoff.rejected": "rejected the handoff",
   "handoff.cancelled": "cancelled the handoff",
+  "update.posted": "posted to the case log",
 };
 
 const REASONS: Record<string, string> = {
@@ -46,6 +47,7 @@ function detail(e: Entry, names: Record<string, string>) {
   const p = e.payload;
   const n = (id: unknown) => (typeof id === "string" ? (names[id] ?? id) : "");
   if (typeof p.title === "string") return `“${p.title}”`;
+  if (e.verb === "update.posted") return `${String(p.kind).toLowerCase()}: “${String(p.body).slice(0, 80)}${String(p.body).length > 80 ? "…" : ""}”`;
   if (typeof p.filename === "string") return `${p.filename}`;
   if (e.verb === "handoff.warning_waived") return `${p.code}: “${p.justification}”`;
   if (e.verb.startsWith("handoff.") && p.to) return `to ${n(p.to)}`;
@@ -138,7 +140,7 @@ export function ActivityTab({ data }: TabProps) {
               className={cx(
                 "flex gap-3 border-b border-line px-4 py-3 last:border-0",
                 broken === e.seq && "bg-bad-soft",
-                broken !== null && e.seq > broken && "bg-bad-soft/40",
+                broken !== null && e.seq > broken && "border-l-2 border-l-bad/40",
               )}
             >
               <span className={cx("mt-0.5 w-8 shrink-0 text-right font-mono text-xs", broken === e.seq ? "font-bold text-bad" : "text-muted")}>#{e.seq}</span>

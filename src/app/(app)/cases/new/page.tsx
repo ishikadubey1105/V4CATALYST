@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { api, ApiError, fromDateInput } from "@/lib/client";
 import { CASE_TYPES, PRIORITIES, REQUIRED_DOCS, label } from "@/lib/domain";
-import { Button, ButtonLink, Card, ErrorNote, Field, Input, Select, Textarea } from "@/components/ui";
+import { Button, ButtonLink, Card, ErrorNote, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
 
 export default function NewCasePage() {
   const router = useRouter();
@@ -32,10 +32,9 @@ export default function NewCasePage() {
   const required = REQUIRED_DOCS[form.caseType] ?? [];
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight">New case</h1>
-      <p className="mb-6 text-sm text-muted">You become the accountable owner. Ownership changes only through a handoff or a manager reassignment.</p>
-      <Card className="p-5">
+    <div className="mx-auto max-w-2xl space-y-6">
+      <PageHeader title="New case" sub="You become the accountable owner. Ownership changes only through a handoff or a manager reassignment." />
+      <Card className="p-6">
         <form onSubmit={submit} className="space-y-4">
           <Field label="Title">
             <Input value={form.title} onChange={set("title")} placeholder="Customer — what this is about" required minLength={3} />

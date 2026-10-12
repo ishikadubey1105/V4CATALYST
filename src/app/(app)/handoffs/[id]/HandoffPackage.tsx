@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { api, ApiError, fmtDate, fmtDateTime, relDays } from "@/lib/client";
 import { label } from "@/lib/domain";
 import { Avatar, Badge, Button, Card, ErrorNote, Field, Mono, Modal, PageLoading, Textarea, cx, shortHash } from "@/components/ui";
@@ -16,12 +17,15 @@ type Snapshot = {
   documents: { id: string; filename: string; docClass: string; sha256: string }[];
   readiness: { score: number };
   waivers: { code: string; justification: string; by: string; at: string }[];
+  updates?: { id: string; kind: string; body: string; author: string; occurredAt: string }[];
 };
+type LiveUpdate = { id: string; kind: string; body: string; authorId: string; occurredAt: string };
 type Resp = {
   handoff: { id: string; caseId: string; state: string; fromUserId: string; toUserId: string; reason: string; snapshotHash: string | null; responseNote: string | null; submittedAt: string | null; respondedAt: string | null; readinessScore: number | null };
   case: { id: string; title: string };
   snapshot: Snapshot | null;
   snapshotIntact: boolean | null;
+  updatesSince: LiveUpdate[];
   names: Record<string, string>;
   permissions: { manage: boolean; cancel: boolean; respond: boolean };
 };
@@ -112,12 +116,22 @@ export function HandoffPackage({ id }: { id: string }) {
   return (
     <div className="space-y-6">
       <div>
-        <Link href={`/cases/${h.caseId}`} className="text-sm text-muted hover:text-ink">
-          ← {d.case.title}
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Context package</h1>
-          <Badge tone={STATE_TONE[h.state]}>{label(h.state)}</Badge>
+        <nav className="flex items-center gap-1.5 text-[13px] text-muted" aria-label="Breadcrumb">
+          <Link href="/" className="hover:text-ink">
+            Cases
+          </Link>
+          <ChevronRight size={14} aria-hidden />
+          <Link href={`/cases/${h.caseId}`} className="truncate hover:text-ink">
+            {d.case.title}
+          </Link>
+          <ChevronRight size={14} aria-hidden />
+          <span className="text-ink-2">Context package</span>
+        </nav>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.015em]">Context package</h1>
+          <Badge tone={STATE_TONE[h.state]} dot>
+            {label(h.state)}
+          </Badge>
         </div>
       </div>
 
@@ -177,6 +191,24 @@ export function HandoffPackage({ id }: { id: string }) {
             {h.state === "ACCEPTED" ? `${to} accepted responsibility` : `${to} returned the case`} {fmtDateTime(h.respondedAt)}.
           </span>
           {h.responseNote && <span> “{h.responseNote}”</span>}
+        </Card>
+      )}
+
+      {d.updatesSince.length > 0 && (
+        <Card className="border-accent/50 p-5">
+          <Section title={`Since this package was sent (${d.updatesSince.length})`} hint="The case kept moving after the package was frozen. These are not part of the signed package.">
+            <ul className="space-y-2">
+              {d.updatesSince.map((u) => (
+                <li key={u.id} className="flex flex-wrap items-start gap-2 text-sm">
+                  <Badge tone={u.kind === "ESCALATION" ? "bad" : u.kind === "EVENT" ? "accent" : "neutral"}>{label(u.kind)}</Badge>
+                  <span className="min-w-0 flex-1">{u.body}</span>
+                  <span className="text-xs text-muted">
+                    {d.names[u.authorId]} · {fmtDateTime(u.occurredAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Section>
         </Card>
       )}
 
@@ -257,6 +289,25 @@ export function HandoffPackage({ id }: { id: string }) {
         </div>
 
         <div className="space-y-6">
+          {s.updates && s.updates.length > 0 && (
+            <Card className="p-5">
+              <Section title="Latest on the case" hint="The running log, newest first.">
+                <ul className="space-y-2.5">
+                  {s.updates.slice(0, 6).map((u) => (
+                    <li key={u.id} className="text-sm">
+                      <div className="flex items-center gap-2">
+                        <Badge tone={u.kind === "ESCALATION" ? "bad" : u.kind === "EVENT" ? "accent" : "neutral"}>{label(u.kind)}</Badge>
+                        <span className="text-xs text-muted">
+                          {u.author} · {fmtDateTime(u.occurredAt)}
+                        </span>
+                      </div>
+                      <p className="mt-1">{u.body}</p>
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+            </Card>
+          )}
           <Card className="p-5">
             <Section title="Context">
               <ul className="space-y-3">

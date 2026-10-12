@@ -23,6 +23,7 @@ async function reset() {
   await db.notification.deleteMany();
   await db.activityLog.deleteMany();
   await db.ownershipPeriod.deleteMany();
+  await db.caseUpdate.deleteMany();
   await db.handoff.deleteMany();
   await db.document.deleteMany();
   await db.actionItem.deleteMany();
@@ -84,6 +85,11 @@ function writers(tx: Tx, caseId: string) {
         at,
       });
       return item;
+    },
+    async update(actorId: string, at: Date, kind: string, body: string) {
+      const u = await tx.caseUpdate.create({ data: { caseId, kind, body, occurredAt: at, authorId: actorId, createdAt: at } });
+      await appendLog(tx, { caseId, actorId, verb: "update.posted", targetType: "CaseUpdate", targetId: u.id, payload: { kind, body, occurredAt: at }, at });
+      return u;
     },
     async document(actorId: string, at: Date, filename: string, docClass: string, title: string, lines: string[]) {
       const bytes = makePdf(title, lines);
@@ -204,6 +210,12 @@ async function main() {
     });
     await w.action(priya.id, ago(8), { title: "Confirm Acme's credit limit with AP", assigneeId: priya.id, dueDate: ago(1), note: "Waiting on Acme AP.", noteAt: ago(2) });
     await w.action(priya.id, ago(2), { title: "Send revised statement to the Acme CFO", assigneeId: priya.id, dueDate: ahead(6) });
+    // The running log of an ongoing dispute. Does not affect the gate.
+    await w.update(priya.id, ago(14), "EVENT", "Acme AP formally disputed the Q3 invoices by email (ticket 55120 reopened).");
+    await w.update(anjali.id, ago(9), "ESCALATION", "Acme's CFO copied our VP Sales on the dispute thread. Treat as high priority.");
+    await w.update(priya.id, ago(5), "UPDATE", "Finance agreed in principle to a goodwill credit; amount still to be confirmed.");
+    await w.update(anjali.id, ago(2, 3), "EVENT", "R. Kapoor called the support line asking for a status; told her the revised statement is coming this week.");
+    await w.update(priya.id, ago(1), "UPDATE", "Chased the Finance controller again; sign-off promised by Friday.");
     // Blocker: no invoice attached on a billing dispute (the demo uploads demo-files/acme-invoice-INV-2291.pdf).
     await tx.notification.create({
       data: { userId: priya.id, kind: "action.overdue", caseId: acme.id, body: `"Get Finance sign-off on disputed line items" on "${acme.title}" is overdue.`, createdAt: ago(1) },
@@ -342,7 +354,6 @@ async function main() {
 
   const r = await readinessFor(acme.id, rahul.id);
   console.log(`Seeded. Acme gate: ${r.score}% · ${r.blockers.length} blockers · ${r.warnings.length} warnings`);
-  void anjali;
 }
 
 main()

@@ -19,7 +19,8 @@ Generate secrets with `node -e "console.log(require('crypto').randomBytes(32).to
 | --- | --- |
 | `npm test` | Unit tests for the gate engine and the hash chain |
 | `npm run db:reset` | Wipe and reload the demo data. Run before every rehearsal. |
-| `node scripts/demo-check.mjs http://localhost:3000` | Runs the whole demo through the API (32 checks), including tampering with the database. Run `npm run db:reset` afterwards. |
+| `npm run test:api -- http://localhost:3000` | 47 checks through the API, including attack tests and tampering with the database. Run `npm run db:reset` afterwards. |
+| `npm run test:ui -- http://localhost:3000` | Drives a real browser through the whole demo as all five roles and a phone, with screenshots. Needs `npx playwright install chromium` once. Run `npm run db:reset` afterwards. |
 | `npm run typecheck` / `npm run lint` | Static checks |
 
 ## Demo accounts
@@ -66,6 +67,8 @@ The server re-runs the gate on submit; it never trusts the score the client saw.
 *Honest limit:* a hash chain detects tampering; it does not prevent it. Someone with database write access could rewrite an entry and every entry after it, and update the stored head. Closing that needs an external anchor for the head hash (an append-only store or a countersigning key the app server does not hold).
 
 **Access control** is enforced server-side in `src/lib/authz.ts` on every route. Members see cases they own, owned, were part of a handoff on, or have work on; managers see their team; admins and auditors see everything; auditors cannot write. Cases you cannot see return 404, not 403.
+
+Security design, controls and known limits: see [SECURITY.md](SECURITY.md).
 
 ## Convergence: Web + Cybersecurity + Cloud
 

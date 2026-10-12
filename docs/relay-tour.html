@@ -1,0 +1,721 @@
+<title>Relay Product Tour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; product screens sit in browser frames, the gate is interactive. Tokens mirror the Relay app itself. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f1f3f6; --line: #e3e6eb;
+  --ink: #14171c; --muted: #5d6573;
+  --accent: #4f46e5; --accent-ink: #ffffff; --accent-soft: #eef0ff;
+  --good: #15803d; --good-soft: #e9f7ee; --warn: #b45309; --warn-soft: #fdf3e4; --bad: #c2261d; --bad-soft: #fdecea;
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d0f13; --surface: #15181e; --surface-2: #1c2028; --line: #2a2f39; --ink: #eceef2; --muted: #9aa2b1;
+  --accent: #8b85ff; --accent-ink: #0d0f13; --accent-soft: #23224a;
+  --good: #4ade80; --good-soft: #13291c; --warn: #fbbf24; --warn-soft: #2d230f; --bad: #f87171; --bad-soft: #33171a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0d0f13; --surface: #15181e; --surface-2: #1c2028; --line: #2a2f39; --ink: #eceef2; --muted: #9aa2b1;
+  --accent: #8b85ff; --accent-ink: #0d0f13; --accent-soft: #23224a;
+  --good: #4ade80; --good-soft: #13291c; --warn: #fbbf24; --warn-soft: #2d230f; --bad: #f87171; --bad-soft: #33171a; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 1040px; margin: 0 auto; }
+h1, h2, h3 { text-wrap: balance; letter-spacing: -0.01em; margin: 0; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); font-size: 12px; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+
+/* hero */
+.hero { padding-block: 56px 32px; display: grid; gap: 20px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 18px; }
+.mark { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
+.hero h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 700; line-height: 1.08; max-width: 18ch; }
+.hero p.lead { font-size: 17px; color: var(--muted); max-width: 62ch; }
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.step { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px 6px 6px; font-size: 13px; }
+.step b { font-weight: 600; }
+.arrow { color: var(--muted); }
+
+/* sections */
+section { padding-block: 40px; border-top: 1px solid var(--line); display: grid; gap: 20px; }
+section > header { display: grid; gap: 6px; max-width: 70ch; }
+section h2 { font-size: 26px; font-weight: 650; }
+
+/* avatar, badge */
+.av { width: 24px; height: 24px; border-radius: 50%; color: #fff; font-size: 10px; font-weight: 700; display: inline-grid; place-items: center; flex: none; }
+.av.p { background: hsl(330 45% 48%); } .av.r { background: hsl(200 45% 48%); } .av.a { background: hsl(140 40% 40%); } .av.m { background: hsl(30 55% 46%); }
+.b { display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; padding: 1px 8px; font-size: 11.5px; font-weight: 500; white-space: nowrap; background: var(--surface-2); color: var(--muted); }
+.b.bad { background: var(--bad-soft); color: var(--bad); } .b.warn { background: var(--warn-soft); color: var(--warn); }
+.b.good { background: var(--good-soft); color: var(--good); } .b.acc { background: var(--accent-soft); color: var(--accent); }
+
+/* screen tabs + browser frame */
+.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); }
+.tab { appearance: none; border: 0; background: none; font: inherit; font-size: 14px; color: var(--muted); padding: 8px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; display: flex; gap: 6px; align-items: center; }
+.tab .n { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.tab[aria-selected="true"] { color: var(--ink); font-weight: 600; border-color: var(--accent); }
+.tab:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.beat { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start; }
+@media (max-width: 820px) { .beat { grid-template-columns: minmax(0, 1fr); } }
+.note { display: grid; gap: 10px; font-size: 14px; }
+.note h3 { font-size: 17px; }
+.note .who { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.note ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.say { border-left: 3px solid var(--accent); padding: 6px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; font-size: 14px; }
+
+.frame { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg); box-shadow: 0 12px 32px -18px rgb(0 0 0 / .35); min-width: 0; }
+.chrome { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.chrome i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.chrome .url { margin-left: 10px; font-family: var(--mono); font-size: 11px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 2px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.appbar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--surface); border-bottom: 1px solid var(--line); font-size: 13px; }
+.appbar .sp { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.screen { padding: 16px; display: grid; gap: 12px; font-size: 13px; overflow-x: auto; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.pad { padding: 12px; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi .v { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.kpi .l { font-size: 11px; color: var(--muted); }
+table.cases { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 520px; }
+.cases th { text-align: left; font-weight: 500; color: var(--muted); font-size: 11px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.cases td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.cases tr:last-child td { border-bottom: 0; }
+.bar { width: 64px; height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; display: inline-block; vertical-align: middle; }
+.bar > span { display: block; height: 100%; border-radius: 99px; }
+.sub { font-size: 11px; color: var(--muted); }
+.ctabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); font-size: 12px; overflow-x: auto; }
+.ctabs span { padding: 6px 10px; color: var(--muted); white-space: nowrap; }
+.ctabs span.on { color: var(--ink); font-weight: 600; border-bottom: 2px solid var(--accent); }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--bad); display: inline-block; margin-left: 4px; vertical-align: middle; }
+
+/* gate */
+.gate { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 12px; }
+@media (max-width: 640px) { .gate { grid-template-columns: minmax(0, 1fr); } }
+.gauge { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.gauge svg circle.fg { transition: stroke-dashoffset .6s ease, stroke .3s; }
+@media (prefers-reduced-motion: reduce) { .gauge svg circle.fg { transition: none; } }
+.status { font-weight: 600; font-size: 13px; }
+.finding { border-radius: 8px; border: 1px solid; padding: 10px; display: grid; gap: 6px; }
+.finding.bad { border-color: color-mix(in srgb, var(--bad) 30%, transparent); background: color-mix(in srgb, var(--bad-soft) 60%, transparent); }
+.finding.warn { border-color: color-mix(in srgb, var(--warn) 30%, transparent); background: color-mix(in srgb, var(--warn-soft) 60%, transparent); }
+.finding.done { border-color: var(--line); background: var(--surface-2); }
+.finding .msg { font-size: 12.5px; }
+.finding.done .msg { color: var(--muted); text-decoration: line-through; }
+.fixbtn { appearance: none; font: inherit; font-size: 12px; font-weight: 500; border-radius: 6px; padding: 4px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); justify-self: end; }
+.fixbtn:hover { border-color: var(--accent); color: var(--accent); }
+.submit { appearance: none; font: inherit; width: 100%; border: 0; border-radius: 8px; padding: 9px; font-weight: 600; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+.submit:disabled { opacity: .45; cursor: not-allowed; }
+.reset { appearance: none; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; }
+.toast { font-size: 12.5px; padding: 8px 10px; border-radius: 8px; background: var(--good-soft); color: var(--good); font-weight: 500; }
+
+/* package + chain */
+.pkg { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 640px) { .pkg { grid-template-columns: minmax(0, 1fr); } }
+.gap-list { display: grid; gap: 6px; }
+.gap-item { background: color-mix(in srgb, var(--warn-soft) 70%, transparent); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
+.verify { border-radius: 8px; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; }
+.verify.ok { background: var(--good-soft); color: var(--good); }
+.verify.broken { background: var(--bad-soft); color: var(--bad); }
+.log li { display: flex; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.log li:last-child { border-bottom: 0; }
+.log li.hit { background: var(--bad-soft); }
+.log li.after { background: color-mix(in srgb, var(--bad-soft) 45%, transparent); }
+.log .seq { font-family: var(--mono); font-size: 11px; color: var(--muted); width: 28px; text-align: right; flex: none; padding-top: 1px; }
+.log ol { list-style: none; margin: 0; padding: 0; }
+.tamper { appearance: none; font: inherit; font-size: 12px; border: 1px dashed var(--bad); color: var(--bad); background: none; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+
+/* coverage + architecture */
+.cover { width: 100%; border-collapse: collapse; font-size: 14px; }
+.cover th, .cover td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.cover th { font-size: 12px; color: var(--muted); font-weight: 500; }
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.arch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+@media (max-width: 760px) { .arch { grid-template-columns: minmax(0, 1fr); } }
+.layer { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; align-content: start; }
+.layer h3 { font-size: 15px; }
+.layer ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; }
+.layer .tag { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.layer.core { border-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 40%, var(--surface)); }
+.mods { display: grid; gap: 8px; }
+.mod { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+.mod code { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+.wire { font-size: 13px; color: var(--muted); }
+
+/* plan */
+.phases { display: grid; gap: 12px; }
+.phase { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+@media (max-width: 640px) { .phase { grid-template-columns: minmax(0, 1fr); gap: 8px; } }
+.phase .when { display: grid; gap: 6px; align-content: start; }
+.phase .when b { font-size: 16px; }
+.items { display: grid; gap: 8px; }
+.item { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: start; font-size: 14px; }
+.item .tick { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 11px; margin-top: 2px; }
+.item.done .tick { background: var(--good); border-color: var(--good); color: var(--surface); }
+.item .what b { font-weight: 600; }
+.item .what span { display: block; color: var(--muted); font-size: 13px; }
+.item .est { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; padding-top: 3px; }
+.phase.now { border-color: var(--accent); }
+/* legend + case log */
+.legend { display: grid; gap: 8px; }
+.lg-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; font-size: 12px; }
+@media (max-width: 640px) { .lg-grid { grid-template-columns: minmax(0, 1fr); } }
+.lg-col { display: grid; gap: 5px; align-content: start; }
+.lg-h { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.sw { display: inline-block; width: 22px; height: 6px; border-radius: 99px; flex: none; }
+.kd { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.kind { appearance: none; font: inherit; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+.kind.on { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.ta { width: 100%; font: inherit; font-size: 13px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: vertical; }
+.ta:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.tl { list-style: none; margin: 0; padding: 0 0 0 18px; border-left: 1px solid var(--line); display: grid; gap: 8px; }
+.tl li { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; gap: 4px; font-size: 12.5px; }
+.tl li.esc { border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+.tl li.new { animation: pop .5s ease-out; }
+@keyframes pop { from { box-shadow: 0 0 0 3px var(--accent); } to { box-shadow: 0 0 0 3px transparent; } }
+@media (prefers-reduced-motion: reduce) { .tl li.new { animation: none; } }
+.tl li > .kd { position: absolute; left: -23px; top: 13px; box-shadow: 0 0 0 3px var(--bg); }
+footer { padding-block: 32px 0; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+</style>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="brand"><span class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h12M12 6l6 6-6 6"/></svg></span>Relay</div>
+    <h1>A handoff is a transaction the system can refuse.</h1>
+    <p class="lead">Relay checks a case for missing context, unowned work and undocumented decisions before responsibility moves. The new owner accepts a fingerprinted package, and every step lands in a history that shows if anyone edits it later. This page walks through the product as it is built today, and the plan for what is left.</p>
+    <div class="flow" aria-label="The demo story">
+      <span class="step"><span class="av p">PN</span><b>Priya</b> starts a handoff</span><span class="arrow">→</span>
+      <span class="step"><span class="b bad">58%</span><b>Gate</b> refuses it</span><span class="arrow">→</span>
+      <span class="step"><span class="av p">PN</span><b>Priya</b> fixes and discloses</span><span class="arrow">→</span>
+      <span class="step"><span class="av r">RV</span><b>Rahul</b> accepts the package</span><span class="arrow">→</span>
+      <span class="step"><span class="av m">MI</span><b>Auditor</b> verifies history</span>
+    </div>
+  </div>
+
+  <section id="screens">
+    <header>
+      <span class="eyebrow">The product</span>
+      <h2>Six screens, in demo order</h2>
+      <p class="muted">These are the real screens, redrawn with the app's own colours and the seeded demo data. The case log, the gate and the integrity check are clickable, so you can rehearse those beats here.</p>
+    </header>
+
+    <div class="tabs" role="tablist" aria-label="Screens">
+      <button class="tab" role="tab" id="t-dash" aria-controls="p-dash" aria-selected="true"><span class="n">1</span>Dashboard</button>
+      <button class="tab" role="tab" id="t-case" aria-controls="p-case" aria-selected="false"><span class="n">2</span>Case</button>
+      <button class="tab" role="tab" id="t-log" aria-controls="p-log" aria-selected="false"><span class="n">3</span>Case log</button>
+      <button class="tab" role="tab" id="t-gate" aria-controls="p-gate" aria-selected="false"><span class="n">4</span>Readiness gate</button>
+      <button class="tab" role="tab" id="t-pkg" aria-controls="p-pkg" aria-selected="false"><span class="n">5</span>Context package</button>
+      <button class="tab" role="tab" id="t-audit" aria-controls="p-audit" aria-selected="false"><span class="n">6</span>Integrity check</button>
+    </div>
+
+    <!-- 1 dashboard -->
+    <div class="beat" role="tabpanel" id="p-dash" aria-labelledby="t-dash">
+      <div class="frame">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">relay.app/</span></div>
+        <div class="appbar"><b>Relay</b><span class="b">Cases</span><span class="sp"><span class="b bad">1</span><span class="av p">PN</span>Priya Nair <span class="b">Member</span></span></div>
+        <div class="screen">
+          <div class="kpis">
+            <div class="card pad kpi"><div class="l">Active cases</div><div class="v">3</div></div>
+            <div class="card pad kpi"><div class="l">Not ready to hand off</div><div class="v" style="color:var(--bad)">1</div></div>
+            <div class="card pad kpi"><div class="l">Overdue actions</div><div class="v" style="color:var(--warn)">2</div></div>
+            <div class="card pad kpi"><div class="l">Handoffs in flight</div><div class="v">0</div></div>
+          </div>
+          <div class="card" style="overflow-x:auto">
+            <table class="cases">
+              <thead><tr><th>Case</th><th>Owner</th><th>Handoff readiness</th><th>Actions</th><th>Deadline</th></tr></thead>
+              <tbody>
+                <tr><td><b>Acme Corp — billing dispute escalation</b><div class="row" style="margin-top:4px"><span class="b">Billing dispute</span><span class="b warn">High</span></div></td><td><span class="row"><span class="av p">PN</span>Priya Nair</span></td><td><span class="bar"><span style="width:58%;background:var(--bad)"></span></span> <span class="sub">58%</span><div class="sub" style="color:var(--bad)">3 blockers · 2 warnings</div></td><td>4 open <span class="b bad">2 overdue</span></td><td>in 5 days</td></tr>
+                <tr><td><b>Northwind — SSO rollout for 1,200 seats</b><div class="row" style="margin-top:4px"><span class="b">Project</span><span class="b">Medium</span></div></td><td><span class="row"><span class="av p">PN</span>Priya Nair</span></td><td><span class="bar"><span style="width:100%;background:var(--good)"></span></span> <span class="sub">100%</span><div class="sub">No blockers</div></td><td>2 open</td><td>in 28 days</td></tr>
+                <tr><td><b>Umbrella Corp — refund backlog</b><div class="row" style="margin-top:4px"><span class="b">General</span><span class="b">Closed</span></div></td><td><span class="row"><span class="av p">PN</span>Priya Nair</span></td><td><span class="sub">—</span></td><td>0 open</td><td>—</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card pad legend">
+            <b>Legend</b>
+            <div class="lg-grid">
+              <div class="lg-col"><span class="lg-h">Handoff readiness</span>
+                <span class="row"><i class="sw" style="background:var(--bad)"></i>Blockers: cannot change hands yet</span>
+                <span class="row"><i class="sw" style="background:var(--warn)"></i>Warnings only: fix or disclose</span>
+                <span class="row"><i class="sw" style="background:var(--good)"></i>Every check passes</span></div>
+              <div class="lg-col"><span class="lg-h">Badges</span>
+                <span class="row"><span class="b bad">Critical</span><span class="b warn">High</span>priority</span>
+                <span class="row"><span class="b bad">2 overdue</span>past due date</span>
+                <span class="row"><span class="b acc">In handoff</span>awaiting acceptance</span></div>
+              <div class="lg-col"><span class="lg-h">On a case</span>
+                <span class="row"><i class="dot" style="margin:0"></i>Gate found something in this tab</span>
+                <span class="row"><i class="kd" style="background:var(--accent)"></i>Event · <i class="kd" style="background:var(--bad)"></i>Escalation in the case log</span>
+                <span class="row"><span style="color:var(--good)">✓</span>/<span style="color:var(--bad)">✕</span>history verified or tampered</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <div class="who"><span class="av p">PN</span>Signed in as Priya, Member</div>
+        <h3>Responsibility at a glance</h3>
+        <p>Every case shows whether it could change hands right now. Acme is red before anyone has asked.</p>
+        <div class="say">“Priya goes on leave tomorrow. Relay already knows one of her cases is not safe to hand over.”</div>
+      </div>
+    </div>
+
+    <!-- 2 case -->
+    <div class="beat" role="tabpanel" id="p-case" aria-labelledby="t-case" hidden>
+      <div class="frame">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">relay.app/cases/acme</span></div>
+        <div class="screen">
+          <div class="row" style="justify-content:space-between">
+            <div><b style="font-size:16px">Acme Corp — billing dispute escalation</b>
+              <div class="row" style="margin-top:6px"><span class="b">Billing dispute</span><span class="b warn">High priority</span><span class="b good">Active</span><span class="sub">Owner</span><span class="av p">PN</span><span>Priya Nair</span></div></div>
+            <span class="b acc" style="padding:6px 12px;font-size:12px">Hand off case</span>
+          </div>
+          <div class="ctabs"><span class="on">Overview</span><span>Context 5</span><span>Decisions 2<i class="dot"></i></span><span>Actions 4<i class="dot"></i></span><span>Documents 2<i class="dot"></i></span><span>Activity</span><span>Ownership</span></div>
+          <div class="pkg">
+            <div class="card pad" style="display:grid;gap:8px">
+              <b>Summary</b>
+              <p>Acme Corp disputes ₹4.8L across three Q3 invoices, claiming premium support was billed after they downgraded on 1 July. The downgrade notice arrived late but inside the grace window. Finance agreed in principle to a goodwill credit; the CFO wants a revised statement before their board meeting.</p>
+            </div>
+            <div class="card pad" style="display:grid;gap:8px">
+              <b>Handoff readiness</b>
+              <div class="row"><span class="b bad">58%</span><span style="color:var(--bad);font-weight:600">3 blockers</span><span style="color:var(--warn)">2 warnings</span></div>
+              <div class="finding bad"><span class="msg">→ Decision “Offer a 15% goodwill credit” has no recorded rationale.</span></div>
+              <div class="finding bad"><span class="msg">→ “Draft credit note” is in progress and still assigned to the outgoing owner.</span></div>
+              <div class="finding bad"><span class="msg">→ Billing dispute cases require an invoice; none is attached.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <div class="who"><span class="av p">PN</span>Priya, case owner</div>
+        <h3>The context that normally lives in an inbox</h3>
+        <ul><li>Context: background, stakeholders, constraints, risks, open questions</li><li>Decisions, each with its rationale</li><li>Actions with owners and due dates</li><li>Documents, fingerprinted on upload</li></ul>
+        <p class="muted">Red dots on tabs show where the gate found gaps.</p>
+      </div>
+    </div>
+
+    <!-- 3 case log -->
+    <div class="beat" role="tabpanel" id="p-log" aria-labelledby="t-log" hidden>
+      <div class="frame">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">relay.app/cases/acme?tab=updates</span></div>
+        <div class="screen">
+          <div class="ctabs"><span>Overview</span><span class="on">Updates <span id="l-count">5</span></span><span>Context 5</span><span>Decisions 2</span><span>Actions 4</span><span>Documents 2</span><span>Activity</span><span>Ownership</span></div>
+          <div class="pkg">
+            <div style="display:grid;gap:10px;min-width:0">
+              <div class="card pad" style="display:grid;gap:8px">
+                <div class="row" role="radiogroup" aria-label="Kind of entry">
+                  <button class="kind on" data-k="UPDATE" role="radio" aria-checked="true"><i class="kd" style="background:var(--muted)"></i>Update</button>
+                  <button class="kind" data-k="EVENT" role="radio" aria-checked="false"><i class="kd" style="background:var(--accent)"></i>Event</button>
+                  <button class="kind" data-k="ESCALATION" role="radio" aria-checked="false"><i class="kd" style="background:var(--bad)"></i>Escalation</button>
+                </div>
+                <label for="l-body" class="sub">What happened</label>
+                <textarea id="l-body" rows="2" class="ta">Acme's CFO moved the board meeting forward to the 16th.</textarea>
+                <div class="row" style="justify-content:space-between"><span class="sub">Everyone on this case sees it, and it joins the tamper-evident history.</span><button class="fixbtn" id="l-post" style="background:var(--accent);color:var(--accent-ink);border-color:var(--accent)">Post to case log</button></div>
+              </div>
+              <ol class="tl" id="l-list"></ol>
+            </div>
+            <div class="card pad" style="display:grid;gap:8px;align-content:start">
+              <b>Legend</b>
+              <span class="row"><i class="kd" style="background:var(--muted)"></i><span><b style="font-weight:500">Update</b> <span class="sub">progress or a status note</span></span></span>
+              <span class="row"><i class="kd" style="background:var(--accent)"></i><span><b style="font-weight:500">Event</b> <span class="sub">a call, a reply, a date moved</span></span></span>
+              <span class="row"><i class="kd" style="background:var(--bad)"></i><span><b style="font-weight:500">Escalation</b> <span class="sub">it got worse or went up a level</span></span></span>
+              <span class="sub" style="border-top:1px solid var(--line);padding-top:8px">Entries cannot be edited or deleted. Post a correction as a new update.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <div class="who"><span class="av p">PN</span>Every role on the case, auditors included</div>
+        <h3>A live log for an ongoing complaint</h3>
+        <p>Owner, manager, assignees, the incoming owner and the auditor can all post what happens as it happens. Each entry shows its author's role. Try posting one.</p>
+        <ul><li>Auditors can post here but stay read-only everywhere else.</li><li>Posting stays open during a handoff. The case does not pause.</li><li>The receiver sees anything posted after the package was sent, flagged separately.</li><li>Each entry notifies the people carrying the case.</li></ul>
+      </div>
+    </div>
+
+    <!-- 4 gate -->
+    <div class="beat" role="tabpanel" id="p-gate" aria-labelledby="t-gate" hidden>
+      <div class="frame">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">relay.app/cases/acme/handoff</span></div>
+        <div class="screen">
+          <div class="gate">
+            <div class="card pad gauge">
+              <svg width="150" height="150" viewBox="0 0 120 120" role="img" aria-label="Readiness gauge">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="10"/>
+                <circle id="g-arc" class="fg" cx="60" cy="60" r="52" fill="none" stroke="var(--bad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.73" stroke-dashoffset="137.2" transform="rotate(-90 60 60)"/>
+                <text id="g-num" x="60" y="62" text-anchor="middle" font-size="28" font-weight="700" fill="var(--ink)" font-family="var(--sans)">58%</text>
+                <text x="60" y="80" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="var(--sans)">readiness</text>
+              </svg>
+              <div class="status" id="g-status" style="color:var(--bad)">Handoff refused — 3 blockers</div>
+              <div class="row" style="justify-content:center"><span class="av p">PN</span><span class="muted">→</span><span class="av r">RV</span><span>Rahul Verma</span></div>
+              <button class="submit" id="g-submit" disabled>Submit handoff to Rahul</button>
+              <div id="g-toast" class="toast" hidden>Submitted. Rahul has been notified.</div>
+              <button class="reset" id="g-reset">Reset to 58%</button>
+            </div>
+            <div style="display:grid;gap:10px;min-width:0">
+              <b>Blockers <span style="color:var(--bad)" id="g-bc">(3)</span></b>
+              <div class="finding bad" data-kind="fix"><span class="b bad" style="justify-self:start">Blocker</span><span class="msg">Decision “Offer a 15% goodwill credit instead of a full refund” has no recorded rationale.</span><button class="fixbtn">Add rationale</button></div>
+              <div class="finding bad" data-kind="fix"><span class="b bad" style="justify-self:start">Blocker</span><span class="msg">“Draft credit note for the 15% goodwill credit” is in progress and still assigned to the outgoing owner.</span><button class="fixbtn">Reassign to Rahul</button></div>
+              <div class="finding bad" data-kind="fix"><span class="b bad" style="justify-self:start">Blocker</span><span class="msg">Billing dispute cases require an invoice document; none is attached.</span><button class="fixbtn">Upload invoice</button></div>
+              <b>Warnings <span style="color:var(--warn)" id="g-wc">(2)</span></b>
+              <div class="finding warn" data-kind="waive" data-just="Deadline is in five days; Rahul was briefed on the CFO's board date."><span class="b warn" style="justify-self:start">Warning</span><span class="msg">The case deadline is in 5 days; the receiver inherits it with little runway.</span><button class="fixbtn">Waive with justification</button></div>
+              <div class="finding warn" data-kind="waive" data-just="Finance sign-off and AP confirmation are both chased; Rahul has the contacts."><span class="b warn" style="justify-self:start">Warning</span><span class="msg">2 open items are past their due date.</span><button class="fixbtn">Waive with justification</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <div class="who"><span class="av p">PN</span>Priya, outgoing owner</div>
+        <h3>The money shot. Try it.</h3>
+        <p>Fix each blocker and waive each warning. The score climbs, and submit unlocks only at the end.</p>
+        <ul><li>Blockers must be fixed. They cannot be waived.</li><li>Warnings can be waived, but the written reason goes to Rahul and the auditor.</li><li>The server re-checks on submit and never trusts the browser.</li></ul>
+        <div class="say">“The system inspected the case and refused the transfer.”</div>
+      </div>
+    </div>
+
+    <!-- 4 package -->
+    <div class="beat" role="tabpanel" id="p-pkg" aria-labelledby="t-pkg" hidden>
+      <div class="frame">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">relay.app/handoffs/acme-1</span></div>
+        <div class="screen">
+          <div class="card pad row" style="justify-content:space-between">
+            <span class="row"><span class="av p">PN</span>Priya Nair <span class="muted">→</span> <span class="av r">RV</span>Rahul Verma</span>
+            <span class="row"><span class="mono muted">package sha256 9f2a41c0e7…b81d3e</span><span class="b good">Package intact</span></span>
+          </div>
+          <div class="card pad row" style="background:var(--accent-soft);border-color:transparent;justify-content:space-between">
+            <span>Accepting makes you the accountable owner, and records that you received exactly this package.</span>
+            <span class="b acc" style="padding:6px 12px;font-size:12px;background:var(--accent);color:var(--accent-ink)">Accept responsibility</span>
+          </div>
+          <div class="card pad" style="display:grid;gap:6px;border-color:var(--accent)">
+            <b>Since this package was sent (1)</b>
+            <span class="sub">The case kept moving after the package was frozen. Not part of the signed package.</span>
+            <span class="row"><span class="b acc">Event</span>Acme's CFO moved the board meeting forward to the 16th. <span class="sub" style="margin-left:auto">Priya Nair · today</span></span>
+          </div>
+          <div class="card pad" style="display:grid;gap:8px;border-color:var(--warn)">
+            <b>Known gaps, disclosed by the sender</b>
+            <div class="gap-list">
+              <div class="gap-item"><span class="mono" style="color:var(--warn)">DEADLINE_SOON</span><br>“Deadline is in five days; Rahul was briefed on the CFO's board date.” <span class="muted">— Priya Nair</span></div>
+              <div class="gap-item"><span class="mono" style="color:var(--warn)">OVERDUE_ITEMS</span><br>“Finance sign-off and AP confirmation are both chased; Rahul has the contacts.” <span class="muted">— Priya Nair</span></div>
+            </div>
+          </div>
+          <div class="pkg">
+            <div class="card pad" style="display:grid;gap:6px"><b>Pending actions</b>
+              <div class="row"><span class="b">Open</span>Get Finance sign-off <span class="sub" style="margin-left:auto;color:var(--bad)">2 days ago</span></div>
+              <div class="row"><span class="b acc">In progress</span>Draft credit note <span class="sub" style="margin-left:auto">in 4 days</span></div>
+              <div class="row"><span class="b">Open</span>Send revised statement <span class="sub" style="margin-left:auto">in 6 days</span></div>
+            </div>
+            <div class="card pad" style="display:grid;gap:6px"><b>Decisions already made</b>
+              <div><b style="font-weight:500">Offer a 15% goodwill credit</b><div class="sub">A full refund breaks the MSA's 60-day dispute window.</div></div>
+              <div><b style="font-weight:500">Escalate disputed lines to Finance</b><div class="sub">Clause 7.4 puts the notice inside the grace window.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <div class="who"><span class="av r">RV</span>Signed in as Rahul, receiver</div>
+        <h3>A package, not a database dump</h3>
+        <p>Ordered for someone starting cold: what to know, what is due, what is already decided, and the gaps the sender admitted to.</p>
+        <p class="muted">Acceptance is tied to the package fingerprint. If anything changed since Rahul opened it, accept is refused.</p>
+      </div>
+    </div>
+
+    <!-- 5 audit -->
+    <div class="beat" role="tabpanel" id="p-audit" aria-labelledby="t-audit" hidden>
+      <div class="frame">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">relay.app/cases/acme?tab=activity</span></div>
+        <div class="screen">
+          <div class="card pad row" style="justify-content:space-between">
+            <div style="min-width:0;flex:1"><b>Tamper-evident history</b><div class="sub">Every entry hashes the one before it.</div></div>
+            <span class="row"><button class="tamper" id="a-tamper">Edit entry #5 in the database</button><button class="fixbtn" id="a-verify" style="background:var(--accent);color:var(--accent-ink);border-color:var(--accent)">Verify integrity</button></span>
+          </div>
+          <div id="a-result" class="verify ok"><b>✓</b><span><b>Chain intact — all 24 entries verified.</b><br><span class="mono">head 4c1e09a7b2…a90f11</span></span></div>
+          <div class="card log"><ol id="a-log"></ol></div>
+        </div>
+      </div>
+      <div class="note">
+        <div class="who"><span class="av m">MI</span>Signed in as Meera, Auditor</div>
+        <h3>Even an admin cannot quietly rewrite history</h3>
+        <p>Click “Edit entry #5”, then “Verify integrity”. In the live demo you do the edit in Prisma Studio, in front of the judges.</p>
+        <div class="say">“I just tampered with it as an administrator, and the system caught me.”</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="coverage">
+    <header>
+      <span class="eyebrow">Problem statement fit</span>
+      <h2>All eight required deliverables are built</h2>
+      <p class="muted">Tested by the automated demo run: 38 checks through the real API, all passing.</p>
+    </header>
+    <div class="tablewrap">
+      <table class="cover">
+        <thead><tr><th>PS 3 deliverable</th><th>Where it is in Relay</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Case or project creation and ownership</td><td>New case form; exactly one owner at any time</td><td><span class="b good">Built</span></td></tr>
+          <tr><td>Centralized context and document management</td><td>Context, Decisions and Documents tabs; files fingerprinted</td><td><span class="b good">Built</span></td></tr>
+          <tr><td>Pending-action and deadline tracking</td><td>Actions tab; overdue badges on dashboard and case</td><td><span class="b good">Built</span></td></tr>
+          <tr><td>Structured handoff workflow</td><td>Recipient → readiness check → fix or waive → submit → accept or return</td><td><span class="b good">Built</span></td></tr>
+          <tr><td>Handoff completeness verification</td><td>Readiness gate: 12 rules, refuses submission while gaps remain</td><td><span class="b good">Built</span></td></tr>
+          <tr><td>New-owner acknowledgement</td><td>Receiver accepts a fingerprinted package</td><td><span class="b good">Built</span></td></tr>
+          <tr><td>Complete activity and responsibility history</td><td>Activity tab with integrity check; Ownership tab with every waiver</td><td><span class="b good">Built</span></td></tr>
+          <tr><td>Notifications for unresolved or overdue actions</td><td>Notification bell, overdue sweep, handoff alerts</td><td><span class="b good">Built</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <header>
+      <span class="eyebrow">How it fits together</span>
+      <h2>One app, two managed services</h2>
+      <p class="muted">The browser talks to one Next.js app. Every request is checked for role before anything happens, and every change writes its history entry in the same database transaction.</p>
+    </header>
+    <div class="arch">
+      <div class="layer">
+        <span class="tag">Web</span>
+        <h3>Browser, four roles</h3>
+        <ul><li>Member: owns and hands off cases</li><li>Manager: sees the team, can reassign</li><li>Auditor: read-only, verifies history</li><li>Admin: sets the gate rules</li></ul>
+        <p class="wire">Signed session cookie over HTTPS →</p>
+      </div>
+      <div class="layer core">
+        <span class="tag">Next.js on Vercel</span>
+        <h3>Relay app</h3>
+        <div class="mods">
+          <div class="mod"><code>authorize()</code> role check on every route</div>
+          <div class="mod"><code>evaluate()</code> the readiness gate, 12 rules</div>
+          <div class="mod"><code>appendLog()</code> chained history, same transaction</div>
+          <div class="mod"><code>verifyChain()</code> recomputes every hash</div>
+        </div>
+      </div>
+      <div class="layer">
+        <span class="tag">Cloud</span>
+        <h3>Managed storage</h3>
+        <ul><li>Postgres on Neon: cases, history, handoffs</li><li>Vercel Blob: documents, fingerprinted</li><li>Vercel Cron: overdue sweep</li></ul>
+        <p class="wire">Local development uses SQLite and disk.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="plan">
+    <header>
+      <span class="eyebrow">How we finish</span>
+      <h2>The plan from here</h2>
+      <p class="muted">Hours are rough estimates for one person. Work top to bottom; everything below the line is optional.</p>
+    </header>
+    <div class="phases">
+      <div class="phase">
+        <div class="when"><span class="b good" style="justify-self:start">Done</span><b>Core product</b></div>
+        <div class="items">
+          <div class="item done"><span class="tick">✓</span><span class="what"><b>All eight deliverables built</b><span>Gate, package, chained history, roles, notifications</span></span><span class="est"></span></div>
+          <div class="item done"><span class="tick">✓</span><span class="what"><b>Demo data at exactly 58%</b><span>Acme with 3 blockers and 2 warnings, plus four supporting cases</span></span><span class="est"></span></div>
+          <div class="item done"><span class="tick">✓</span><span class="what"><b>Case log and legend</b><span>Live updates, events and escalations on an ongoing case, visible to everyone on it</span></span><span class="est"></span></div>
+          <div class="item done"><span class="tick">✓</span><span class="what"><b>Tests</b><span>15 unit tests and a 38-check end-to-end demo run</span></span><span class="est"></span></div>
+          <div class="item done"><span class="tick">✓</span><span class="what"><b>On GitHub</b><span>Branch <span class="mono">ishika</span> on V4CATALYST</span></span><span class="est"></span></div>
+        </div>
+      </div>
+      <div class="phase now">
+        <div class="when"><span class="b acc" style="justify-self:start">Next</span><b>Make it presentable</b></div>
+        <div class="items">
+          <div class="item"><span class="tick"></span><span class="what"><b>Click through every screen in a browser</b><span>Fix anything that looks off, at laptop and phone width</span></span><span class="est">~1 h</span></div>
+          <div class="item"><span class="tick"></span><span class="what"><b>Deploy to Vercel with Neon</b><span>Switch the database to Postgres and file storage to Vercel Blob</span></span><span class="est">~2 h</span></div>
+          <div class="item"><span class="tick"></span><span class="what"><b>Rehearse the demo three times</b><span>Including the live database edit; record a backup video</span></span><span class="est">~1.5 h</span></div>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="when"><span class="b" style="justify-self:start">Then</span><b>Features that win</b></div>
+        <div class="items">
+          <div class="item"><span class="tick"></span><span class="what"><b>Comprehension check before accepting</b><span>Rahul answers 2–3 questions built from the package, proving he read it</span></span><span class="est">~3 h</span></div>
+          <div class="item"><span class="tick"></span><span class="what"><b>Planned leave</b><span>Priya marks leave; Relay drafts her handoffs and nudges her daily</span></span><span class="est">~3 h</span></div>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="when"><span class="b" style="justify-self:start">If time</span><b>Extras</b></div>
+        <div class="items">
+          <div class="item"><span class="tick"></span><span class="what"><b>Publish the daily history fingerprint externally</b><span>Closes the one limit we admit to; at minimum, pitch it</span></span><span class="est">~2 h</span></div>
+          <div class="item"><span class="tick"></span><span class="what"><b>Two-factor login</b><span>Authenticator app codes</span></span><span class="est">~1 h</span></div>
+          <div class="item"><span class="tick"></span><span class="what"><b>Team continuity view for managers</b><span>Readiness trends, waivers per person, single-person cases</span></span><span class="est">~3 h</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Relay · Hackathon PS 3, Digital Handoff &amp; Continuity Management · Web + Cybersecurity + Cloud</span>
+    <span>Demo accounts use the password <span class="mono">relay-demo</span>. Reset the data with <span class="mono">npm run db:reset</span> before every rehearsal.</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  // Tabs
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  function select(tab) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { select(t); });
+    t.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        var n = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        select(n); n.focus();
+      }
+    });
+  });
+
+  // Gate: same weights as the app. Blockers weigh 3, warnings 1; 26 points across 12 rules.
+  var TOTAL = 26, BASE = 15, C = 2 * Math.PI * 52;
+  var findings = Array.prototype.slice.call(document.querySelectorAll('#p-gate .finding'));
+  var original = findings.map(function (f) { return f.innerHTML; });
+  var arc = document.getElementById('g-arc'), num = document.getElementById('g-num');
+  var status = document.getElementById('g-status'), submit = document.getElementById('g-submit');
+  var toast = document.getElementById('g-toast');
+  function render() {
+    var fixed = findings.filter(function (f) { return f.dataset.kind === 'fix' && f.classList.contains('done'); }).length;
+    var waived = findings.filter(function (f) { return f.dataset.kind === 'waive' && f.classList.contains('done'); }).length;
+    var score = Math.round(100 * (BASE + fixed * 3 + waived) / TOTAL);
+    var blockers = 3 - fixed, open = 2 - waived;
+    var color = blockers ? 'var(--bad)' : open ? 'var(--warn)' : 'var(--good)';
+    arc.setAttribute('stroke-dashoffset', String(C * (1 - score / 100)));
+    arc.setAttribute('stroke', color);
+    num.textContent = score + '%';
+    status.style.color = color;
+    status.textContent = blockers ? 'Handoff refused — ' + blockers + ' blocker' + (blockers > 1 ? 's' : '') : open ? open + ' warning' + (open > 1 ? 's' : '') + ' to fix or disclose' : 'Ready to hand off';
+    document.getElementById('g-bc').textContent = '(' + blockers + ')';
+    document.getElementById('g-wc').textContent = '(' + open + ')';
+    submit.disabled = blockers > 0 || open > 0 || !toast.hidden;
+  }
+  function wire() {
+    findings.forEach(function (f) {
+      var btn = f.querySelector('.fixbtn');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        f.classList.remove('bad', 'warn');
+        f.classList.add('done');
+        btn.remove();
+        if (f.dataset.kind === 'waive') {
+          var note = document.createElement('span');
+          note.className = 'msg';
+          note.style.textDecoration = 'none';
+          note.style.color = 'var(--ink)';
+          note.textContent = 'Disclosed to Rahul: “' + f.dataset.just + '”';
+          f.appendChild(note);
+          f.querySelector('.b').textContent = 'Waived';
+        } else {
+          f.querySelector('.b').textContent = 'Fixed';
+        }
+        f.querySelector('.b').className = 'b';
+        render();
+      });
+    });
+  }
+  submit.addEventListener('click', function () { toast.hidden = false; render(); });
+  document.getElementById('g-reset').addEventListener('click', function () {
+    findings.forEach(function (f, i) {
+      f.innerHTML = original[i];
+      f.classList.remove('done');
+      f.classList.add(f.dataset.kind === 'fix' ? 'bad' : 'warn');
+    });
+    toast.hidden = true;
+    wire(); render();
+  });
+  wire(); render();
+
+  // Case log
+  var KIND = { UPDATE: ['Update', 'var(--muted)', 'b'], EVENT: ['Event', 'var(--accent)', 'b acc'], ESCALATION: ['Escalation', 'var(--bad)', 'b bad'] };
+  var logItems = [
+    ['UPDATE', 'Priya Nair', 'Yesterday', 'Chased the Finance controller again; sign-off promised by Friday.'],
+    ['EVENT', 'Anjali Desai', '2 days ago', 'R. Kapoor called the support line asking for a status; told her the revised statement is coming this week.'],
+    ['UPDATE', 'Priya Nair', '5 days ago', 'Finance agreed in principle to a goodwill credit; amount still to be confirmed.'],
+    ['ESCALATION', 'Anjali Desai', '9 days ago', "Acme's CFO copied our VP Sales on the dispute thread. Treat as high priority."],
+    ['EVENT', 'Priya Nair', '14 days ago', 'Acme AP formally disputed the Q3 invoices by email (ticket 55120 reopened).']
+  ];
+  var list = document.getElementById('l-list'), kindNow = 'UPDATE';
+  function drawCaseLog(fresh) {
+    list.innerHTML = '';
+    logItems.forEach(function (it, i) {
+      var k = KIND[it[0]];
+      var li = document.createElement('li');
+      if (it[0] === 'ESCALATION') li.className = 'esc';
+      if (fresh && i === 0) li.className += ' new';
+      var dot = document.createElement('i'); dot.className = 'kd'; dot.style.background = k[1];
+      var head = document.createElement('span'); head.className = 'row';
+      var badge = document.createElement('span'); badge.className = k[2]; badge.textContent = k[0];
+      var who = document.createElement('span'); who.textContent = it[1];
+      var role = document.createElement('span'); role.className = 'b'; role.textContent = it[1] === 'Anjali Desai' ? 'Manager' : 'Member';
+      var when = document.createElement('span'); when.className = 'sub'; when.style.marginLeft = 'auto'; when.textContent = it[2];
+      head.appendChild(badge); head.appendChild(who); head.appendChild(role); head.appendChild(when);
+      var body = document.createElement('span'); body.textContent = it[3];
+      li.appendChild(dot); li.appendChild(head); li.appendChild(body);
+      list.appendChild(li);
+    });
+    document.getElementById('l-count').textContent = logItems.length;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.kind'), function (b) {
+    b.addEventListener('click', function () {
+      kindNow = b.dataset.k;
+      Array.prototype.forEach.call(document.querySelectorAll('.kind'), function (x) {
+        x.classList.toggle('on', x === b);
+        x.setAttribute('aria-checked', x === b ? 'true' : 'false');
+      });
+    });
+  });
+  document.getElementById('l-post').addEventListener('click', function () {
+    var ta = document.getElementById('l-body');
+    var text = ta.value.trim();
+    if (text.length < 3) { ta.focus(); return; }
+    logItems.unshift([kindNow, 'Priya Nair', 'Just now', text]);
+    ta.value = '';
+    drawCaseLog(true);
+  });
+  drawCaseLog(false);
+
+  // Integrity check
+  var entries = [
+    [24, 'Rahul Verma accepted the handoff'], [23, 'Priya Nair submitted the handoff to Rahul Verma'],
+    [22, 'Priya Nair waived a warning: OVERDUE_ITEMS'], [21, 'Priya Nair waived a warning: DEADLINE_SOON'],
+    [20, 'Priya Nair attached a document: acme-invoice-INV-2291.pdf'], [19, 'Priya Nair updated an action'],
+    [18, 'Priya Nair updated a decision'], [17, 'Priya Nair started a handoff to Rahul Verma'],
+    [6, 'Priya Nair added context: R. Kapoor, Head of AP'], [5, 'Priya Nair recorded a decision: Escalate disputed lines to Finance'],
+    [4, 'Priya Nair attached a document: acme-msa-2025.pdf'], [3, 'Priya Nair attached a document: acme-email-thread.pdf']
+  ];
+  var log = document.getElementById('a-log'), result = document.getElementById('a-result');
+  var tampered = false;
+  function drawLog(broken) {
+    log.innerHTML = '';
+    entries.forEach(function (e) {
+      var li = document.createElement('li');
+      if (broken && e[0] === 5) li.className = 'hit';
+      else if (broken && e[0] > 5) li.className = 'after';
+      var seq = document.createElement('span'); seq.className = 'seq'; seq.textContent = '#' + e[0];
+      var txt = document.createElement('span'); txt.textContent = (tampered && e[0] === 5) ? 'Priya Nair recorded a decision: Refund approved in full' : e[1];
+      li.appendChild(seq); li.appendChild(txt); log.appendChild(li);
+    });
+  }
+  document.getElementById('a-tamper').addEventListener('click', function () {
+    tampered = true;
+    result.className = 'verify';
+    result.style.background = 'var(--surface-2)';
+    result.style.color = 'var(--muted)';
+    result.innerHTML = '<b>!</b><span>Entry #5 was edited directly in the database. Nothing looks different yet. Click “Verify integrity”.</span>';
+    drawLog(false);
+  });
+  document.getElementById('a-verify').addEventListener('click', function () {
+    result.style.background = ''; result.style.color = '';
+    if (tampered) {
+      result.className = 'verify broken';
+      result.innerHTML = '<b>✕</b><span><b>Tampering detected at entry #5 — its contents no longer match its recorded hash.</b><br><span class="mono">expected 7d03be19f4…c2a6e8 · found 1a9f5e2c07…44d0b3</span></span>';
+      drawLog(true);
+    } else {
+      result.className = 'verify ok';
+      result.innerHTML = '<b>✓</b><span><b>Chain intact — all 24 entries verified.</b><br><span class="mono">head 4c1e09a7b2…a90f11</span></span>';
+      drawLog(false);
+    }
+  });
+  drawLog(false);
+})();
+</script>

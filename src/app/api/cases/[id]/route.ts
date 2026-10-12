@@ -13,7 +13,13 @@ export const GET = route(async (_req, { params }: Ctx) => {
   const user = await requireUser();
   const { id } = await params;
   await authorizeCase(user, id, "view");
-  const [c, rules, names] = await Promise.all([loadCaseFull(id), getRules(), userNames()]);
+  const [c, rules, names, roleRows] = await Promise.all([
+    loadCaseFull(id),
+    getRules(),
+    userNames(),
+    db.user.findMany({ select: { id: true, role: true } }),
+  ]);
+  const roles = Object.fromEntries(roleRows.map((u) => [u.id, u.role]));
   // While a draft handoff is open, evaluate against its recipient and waivers so
   // the score here matches the wizard as the owner fixes findings.
   const draft = c.handoffs.find((h) => h.state === "DRAFT") ?? null;
@@ -38,12 +44,14 @@ export const GET = route(async (_req, { params }: Ctx) => {
         ? { id: pending.id, state: pending.state, toUserId: pending.toUserId }
         : null,
     names,
+    roles,
     readiness,
     permissions: {
       edit: editable,
       handoff: canEditCase(user, c),
       reassign: canManage && c.status !== "CLOSED",
       isOwner: c.currentOwnerId === user.id,
+      postUpdate: c.status !== "CLOSED",
     },
   });
 });

@@ -50,6 +50,10 @@ export function relDays(d: string | Date | null | undefined) {
   return diff > 0 ? `in ${diff} days` : `${-diff} days ago`;
 }
 
+export function withinDays(d: string | Date | null | undefined, days: number) {
+  return Boolean(d) && new Date(d!).getTime() - Date.now() < days * DAY;
+}
+
 export function timeAgo(d: string | Date) {
   const s = Math.round((Date.now() - new Date(d).getTime()) / 1000);
   if (s < 60) return "just now";

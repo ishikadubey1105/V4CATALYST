@@ -1,7 +1,6 @@
 import { z } from "zod";
-import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/authz";
+import { requireUser, visibleCasesWhere } from "@/lib/authz";
 import { forbidden, parseJson, route } from "@/lib/http";
 import { appendLog } from "@/lib/audit";
 import { CASE_TYPES, PRIORITIES } from "@/lib/domain";
@@ -11,17 +10,7 @@ import { evaluate } from "@/lib/gate";
 export const GET = route(async () => {
   const user = await requireUser();
 
-  let where: Prisma.CaseWhereInput = {};
-  if (user.role === "MANAGER") where = { team: user.team };
-  else if (user.role === "MEMBER")
-    where = {
-      OR: [
-        { currentOwnerId: user.id },
-        { ownership: { some: { userId: user.id } } },
-        { handoffs: { some: { OR: [{ fromUserId: user.id }, { toUserId: user.id }] } } },
-        { actions: { some: { assigneeId: user.id } } },
-      ],
-    };
+  const where = visibleCasesWhere(user);
 
   const [cases, rules] = await Promise.all([
     db.case.findMany({

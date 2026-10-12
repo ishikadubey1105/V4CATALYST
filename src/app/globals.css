@@ -1,40 +1,65 @@
 @import "tailwindcss";
 
+/* Relay design tokens. Navy chrome, cool canvas, one cobalt accent; semantic
+   colours are reserved for state and never used as decoration. */
 :root {
-  --bg: #f6f7f9;
+  --bg: #f3f5f8;
   --surface: #ffffff;
-  --surface-2: #f1f3f6;
-  --line: #e3e6eb;
-  --ink: #14171c;
-  --muted: #5d6573;
-  --accent: #4f46e5;
+  --surface-2: #f6f8fb;
+  --surface-3: #eceff4;
+  --line: #e2e6ed;
+  --line-strong: #cfd5df;
+  --ink: #0e1726;
+  --ink-2: #344054;
+  --muted: #667085;
+  --accent: #2f54eb;
+  --accent-hover: #2445cf;
   --accent-ink: #ffffff;
-  --accent-soft: #eef0ff;
-  --good: #15803d;
-  --good-soft: #e9f7ee;
-  --warn: #b45309;
-  --warn-soft: #fdf3e4;
-  --bad: #c2261d;
+  --accent-soft: #edf1ff;
+  --good: #11815a;
+  --good-soft: #e7f6ef;
+  --warn: #b25e09;
+  --warn-soft: #fdf3e3;
+  --bad: #c8322b;
   --bad-soft: #fdecea;
+  --chrome: #0b1324;
+  --chrome-2: #131d33;
+  --chrome-line: #1f2a44;
+  --chrome-ink: #e6eaf2;
+  --chrome-muted: #8a95ab;
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-md: 0 1px 3px rgb(16 24 40 / 0.06), 0 4px 12px -2px rgb(16 24 40 / 0.06);
+  --shadow-lg: 0 12px 32px -8px rgb(16 24 40 / 0.18), 0 2px 6px rgb(16 24 40 / 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0d0f13;
-    --surface: #15181e;
-    --surface-2: #1c2028;
-    --line: #2a2f39;
-    --ink: #eceef2;
-    --muted: #9aa2b1;
-    --accent: #8b85ff;
-    --accent-ink: #0d0f13;
-    --accent-soft: #23224a;
-    --good: #4ade80;
-    --good-soft: #13291c;
-    --warn: #fbbf24;
-    --warn-soft: #2d230f;
-    --bad: #f87171;
-    --bad-soft: #33171a;
+    --bg: #0a0f1a;
+    --surface: #111827;
+    --surface-2: #151d2e;
+    --surface-3: #1b2436;
+    --line: #232d42;
+    --line-strong: #31405c;
+    --ink: #eef1f6;
+    --ink-2: #c5ccd8;
+    --muted: #8d97ab;
+    --accent: #7091ff;
+    --accent-hover: #8aa5ff;
+    --accent-ink: #0a0f1a;
+    --accent-soft: #1a2448;
+    --good: #43c58f;
+    --good-soft: #0f2a20;
+    --warn: #f0b04b;
+    --warn-soft: #2e2210;
+    --bad: #f27a72;
+    --bad-soft: #341716;
+    --chrome: #070b14;
+    --chrome-2: #0e1525;
+    --chrome-line: #1a2338;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 1px 3px rgb(0 0 0 / 0.35), 0 4px 12px -2px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.6);
+    color-scheme: dark;
   }
 }
 
@@ -42,10 +67,14 @@
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-good: var(--good);
@@ -54,20 +83,52 @@
   --color-warn-soft: var(--warn-soft);
   --color-bad: var(--bad);
   --color-bad-soft: var(--bad-soft);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-chrome: var(--chrome);
+  --color-chrome-2: var(--chrome-2);
+  --color-chrome-line: var(--chrome-line);
+  --color-chrome-ink: var(--chrome-ink);
+  --color-chrome-muted: var(--chrome-muted);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
 
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01";
+  -webkit-font-smoothing: antialiased;
 }
 
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A gate finding's link lands here: the target flashes once. */
 @keyframes focus-flash {
   0% { box-shadow: 0 0 0 3px var(--accent); }
   100% { box-shadow: 0 0 0 3px transparent; }
 }
-.focus-flash {
-  animation: focus-flash 2.4s ease-out;
+.focus-flash { animation: focus-flash 2.4s ease-out; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.rise { animation: rise 0.25s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

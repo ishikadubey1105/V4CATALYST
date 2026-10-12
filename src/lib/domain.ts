@@ -23,6 +23,8 @@ export const ACTION_STATUSES = ["OPEN", "IN_PROGRESS", "BLOCKED", "DONE"] as con
 export const DOC_CLASSES = ["INVOICE", "CONTRACT", "CORRESPONDENCE", "REPORT", "OTHER"] as const;
 export type DocClass = (typeof DOC_CLASSES)[number];
 
+export const UPDATE_KINDS = ["UPDATE", "EVENT", "ESCALATION"] as const;
+
 export const HANDOFF_STATES = ["DRAFT", "PENDING_ACCEPT", "ACCEPTED", "REJECTED", "CANCELLED"] as const;
 export type HandoffState = (typeof HANDOFF_STATES)[number];
 
@@ -70,6 +72,9 @@ export const LABELS: Record<string, string> = {
   CREATED: "Created",
   HANDOFF: "Handoff",
   REASSIGN: "Manager reassignment",
+  UPDATE: "Update",
+  EVENT: "Event",
+  ESCALATION: "Escalation",
 };
 
 export const label = (v: string | null | undefined) => (v ? (LABELS[v] ?? v) : "");

@@ -144,7 +144,7 @@ export const REGISTRY: Record<string, RuleFn> = {
     return required
       .filter((cls) => !present.has(cls))
       .map((cls) => ({
-        message: `${label(c.caseType)} cases require a ${label(cls).toLowerCase()} document; none is attached.`,
+        message: `${label(c.caseType)} cases require ${/^[aeiou]/i.test(label(cls)) ? "an" : "a"} ${label(cls).toLowerCase()} document; none is attached.`,
         fixPath: tab(c, "documents", `upload-${cls}`),
       }));
   },

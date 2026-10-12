@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, Check, ChevronRight, Lock, OctagonX, RefreshCw, Send, ShieldCheck } from "lucide-react";
 import { api, ApiError } from "@/lib/client";
 import type { Readiness } from "@/lib/gate";
 import { FindingList } from "@/components/FindingList";
@@ -183,19 +184,51 @@ export function HandoffWizard({ caseId }: { caseId: string }) {
   if (!c) return <PageLoading />;
   if (!c.permissions.handoff) return <ErrorNote error="You cannot hand off this case." />;
 
-  const header = (
-    <div className="mb-5">
-      <Link href={`/cases/${caseId}`} className="text-sm text-muted hover:text-ink">
-        ← {c.case.title}
-      </Link>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">Hand off case</h1>
+  const header = (step: 1 | 2 | 3) => (
+    <div className="mb-7 space-y-5">
+      <div>
+        <nav className="flex items-center gap-1.5 text-[13px] text-muted" aria-label="Breadcrumb">
+          <Link href="/" className="hover:text-ink">
+            Cases
+          </Link>
+          <ChevronRight size={14} aria-hidden />
+          <Link href={`/cases/${caseId}`} className="truncate hover:text-ink">
+            {c.case.title}
+          </Link>
+          <ChevronRight size={14} aria-hidden />
+          <span className="text-ink-2">Handoff</span>
+        </nav>
+        <h1 className="mt-3 text-[26px] font-semibold leading-tight tracking-[-0.015em]">Hand off case</h1>
+      </div>
+      <ol className="flex flex-wrap items-center gap-2 text-sm" aria-label="Progress">
+        {["Choose recipient", "Readiness check", "Submit"].map((s, i) => {
+          const n = (i + 1) as 1 | 2 | 3;
+          const done = n < step;
+          const current = n === step;
+          return (
+            <li key={s} className="flex items-center gap-2">
+              <span
+                className={cx(
+                  "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                  done ? "bg-good text-white" : current ? "bg-accent text-white" : "bg-surface-3 text-muted",
+                )}
+                aria-current={current ? "step" : undefined}
+              >
+                {done ? <Check size={13} aria-hidden /> : n}
+              </span>
+              <span className={cx(current ? "font-medium text-ink" : "text-muted")}>{s}</span>
+              {n < 3 && <span className="mx-1 h-px w-8 bg-line-strong" aria-hidden />}
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 
   if (!handoffId || retarget) {
     return (
       <div>
-        {header}
+        {header(1)}
         <StartForm
           c={c}
           initial={h ? { toUserId: h.handoff.toUserId, reason: h.handoff.reason } : undefined}
@@ -239,25 +272,26 @@ export function HandoffWizard({ caseId }: { caseId: string }) {
 
   return (
     <div>
-      {header}
+      {header(ready ? 3 : 2)}
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <Card className="flex flex-col items-center p-5 text-center">
-            <Gauge score={r.score} blockers={r.blockers.length} size={170} />
-            <div className="mt-2 text-sm">
-              {blockerRules > 0 ? (
-                <span className="font-semibold text-bad">
-                  Handoff refused — {blockerRules} blocker{blockerRules > 1 ? "s" : ""}
-                </span>
-              ) : unwaived > 0 ? (
-                <span className="font-semibold text-warn">
-                  {unwaived} warning{unwaived > 1 ? "s" : ""} to fix or disclose
-                </span>
-              ) : (
-                <span className="font-semibold text-good">Ready to hand off</span>
+          <Card className="flex flex-col items-center px-5 pb-4 pt-6 text-center">
+            <Gauge score={r.score} blockers={r.blockers.length} size={176} />
+            <div
+              className={cx(
+                "mt-3 flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold",
+                blockerRules > 0 ? "bg-bad-soft text-bad" : unwaived > 0 ? "bg-warn-soft text-warn" : "bg-good-soft text-good",
               )}
+              role="status"
+            >
+              {blockerRules > 0 ? <OctagonX size={15} aria-hidden /> : unwaived > 0 ? <AlertTriangle size={15} aria-hidden /> : <ShieldCheck size={15} aria-hidden />}
+              {blockerRules > 0
+                ? `Handoff refused · ${blockerRules} blocker${blockerRules > 1 ? "s" : ""}`
+                : unwaived > 0
+                  ? `${unwaived} warning${unwaived > 1 ? "s" : ""} to fix or disclose`
+                  : "Ready to hand off"}
             </div>
-            <Button size="sm" variant="ghost" className="mt-2" onClick={() => loadHandoff(handoffId)} loading={checking}>
+            <Button size="sm" variant="ghost" icon={RefreshCw} className="mt-3" onClick={() => loadHandoff(handoffId)} loading={checking}>
               Re-check
             </Button>
           </Card>
@@ -276,7 +310,7 @@ export function HandoffWizard({ caseId }: { caseId: string }) {
             <p className="mt-3 text-muted">“{h.handoff.reason}”</p>
           </Card>
           <ErrorNote error={error} />
-          <Button variant="primary" size="lg" className="w-full" disabled={!ready} loading={submitting} onClick={submit}>
+          <Button variant="primary" size="lg" className="w-full" icon={ready ? Send : Lock} disabled={!ready} loading={submitting} onClick={submit}>
             Submit handoff to {recipient?.split(" ")[0]}
           </Button>
           {!ready && <p className="text-center text-xs text-muted">Submission unlocks when every blocker is fixed and every warning is fixed or disclosed.</p>}

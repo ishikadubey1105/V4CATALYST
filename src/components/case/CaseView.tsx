@@ -3,6 +3,20 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import {
+  Archive,
+  ArrowRightLeft,
+  BookOpenText,
+  ChevronRight,
+  History,
+  LayoutDashboard,
+  ListChecks,
+  MessageSquareText,
+  Paperclip,
+  Scale,
+  UserCog,
+  Users,
+} from "lucide-react";
 import { api, ApiError } from "@/lib/client";
 import { label } from "@/lib/domain";
 import { useMe } from "../AppShell";
@@ -14,17 +28,19 @@ import { DecisionsTab } from "./DecisionsTab";
 import { DocumentsTab } from "./DocumentsTab";
 import { OverviewTab } from "./OverviewTab";
 import { OwnershipTab } from "./OwnershipTab";
+import { UpdatesTab } from "./UpdatesTab";
 import type { CaseData } from "./types";
 import { useFocusTarget } from "./useFocus";
 
 const TABS = [
-  ["overview", "Overview"],
-  ["context", "Context"],
-  ["decisions", "Decisions"],
-  ["actions", "Actions"],
-  ["documents", "Documents"],
-  ["activity", "Activity"],
-  ["ownership", "Ownership"],
+  ["overview", "Overview", LayoutDashboard],
+  ["updates", "Updates", MessageSquareText],
+  ["context", "Context", BookOpenText],
+  ["decisions", "Decisions", Scale],
+  ["actions", "Actions", ListChecks],
+  ["documents", "Documents", Paperclip],
+  ["activity", "Activity", History],
+  ["ownership", "Ownership", Users],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
@@ -129,92 +145,108 @@ export function CaseView({ id, tab: initialTab, focus }: { id: string; tab: stri
   const props = { data, reload, focus };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
-        <Link href="/" className="text-sm text-muted hover:text-ink">
-          ← Cases
-        </Link>
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+        <nav className="flex items-center gap-1.5 text-[13px] text-muted" aria-label="Breadcrumb">
+          <Link href="/" className="hover:text-ink">
+            Cases
+          </Link>
+          <ChevronRight size={14} aria-hidden />
+          <span className="truncate text-ink-2">{c.title}</span>
+        </nav>
+        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight">{c.title}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.015em]">{c.title}</h1>
+            <div className="mt-2.5 flex flex-wrap items-center gap-2 text-sm">
               <Badge>{label(c.caseType)}</Badge>
-              <Badge tone={c.priority === "CRITICAL" ? "bad" : c.priority === "HIGH" ? "warn" : "neutral"}>{label(c.priority)} priority</Badge>
-              <Badge tone={c.status === "IN_HANDOFF" ? "accent" : c.status === "CLOSED" ? "neutral" : "good"}>{label(c.status)}</Badge>
-              <span className="ml-1 flex items-center gap-1.5 text-muted">
-                Owner <Avatar name={c.currentOwner.name} size={20} /> <span className="text-ink">{c.currentOwner.name}</span>
+              <Badge tone={c.priority === "CRITICAL" ? "bad" : c.priority === "HIGH" ? "warn" : "neutral"} dot={c.priority === "HIGH" || c.priority === "CRITICAL"}>
+                {label(c.priority)} priority
+              </Badge>
+              <Badge tone={c.status === "IN_HANDOFF" ? "accent" : c.status === "CLOSED" ? "neutral" : "good"} dot>
+                {label(c.status)}
+              </Badge>
+              <span className="mx-1 h-4 w-px bg-line-strong" aria-hidden />
+              <span className="flex items-center gap-2 text-muted">
+                <Avatar name={c.currentOwner.name} size={22} />
+                <span>
+                  <span className="text-ink">{c.currentOwner.name}</span> owns this case
+                </span>
               </span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {data.permissions.handoff && c.status === "ACTIVE" && (
-              <ButtonLink href={`/cases/${id}/handoff`} variant="primary">
-                {ah?.state === "DRAFT" ? "Continue handoff" : "Hand off case"}
-              </ButtonLink>
+            {data.permissions.edit && (
+              <Button onClick={close} variant="ghost" icon={Archive}>
+                Close
+              </Button>
             )}
             {data.permissions.reassign && (
-              <Button onClick={() => setReassigning(true)} variant="secondary">
+              <Button onClick={() => setReassigning(true)} variant="secondary" icon={UserCog}>
                 Reassign
               </Button>
             )}
-            {data.permissions.edit && (
-              <Button onClick={close} variant="ghost">
-                Close case
-              </Button>
+            {data.permissions.handoff && c.status === "ACTIVE" && (
+              <ButtonLink href={`/cases/${id}/handoff`} variant="primary" icon={ArrowRightLeft}>
+                {ah?.state === "DRAFT" ? "Continue handoff" : "Hand off case"}
+              </ButtonLink>
             )}
           </div>
         </div>
       </div>
 
       {ah?.state === "DRAFT" && (
-        <div className="sticky top-14 z-20 flex flex-wrap items-center gap-3 rounded-xl border border-accent/40 bg-accent-soft px-4 py-3 shadow-sm">
+        <div className="sticky top-[72px] z-10 flex flex-wrap items-center gap-3 rounded-xl border border-accent/30 bg-surface px-4 py-3 shadow-md">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
+            <ArrowRightLeft size={16} aria-hidden />
+          </span>
           <span className="text-sm">
             Handing off to <span className="font-semibold">{data.names[ah.toUserId]}</span>
           </span>
-          <span className={cx("rounded-md px-2 py-0.5 text-sm font-semibold tabular-nums", blockerRules ? "bg-bad-soft text-bad" : "bg-good-soft text-good")}>
+          <Badge tone={blockerRules ? "bad" : "good"} dot>
             {r.score}% ready
-          </span>
-          <span className="text-sm text-muted">
-            {blockerRules ? `${blockerRules} blocker${blockerRules > 1 ? "s" : ""} left` : "No blockers — ready to submit"}
-          </span>
-          <ButtonLink href={`/cases/${id}/handoff`} variant="primary" className="ml-auto h-8">
-            Back to handoff →
+          </Badge>
+          <span className="text-sm text-muted">{blockerRules ? `${blockerRules} blocker${blockerRules > 1 ? "s" : ""} left` : "No blockers. Ready to submit."}</span>
+          <ButtonLink href={`/cases/${id}/handoff`} variant="primary" size="sm" className="ml-auto">
+            Back to handoff
           </ButtonLink>
         </div>
       )}
       {ah?.state === "PENDING_ACCEPT" && (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-accent/40 bg-accent-soft px-4 py-3">
-          <span className="text-sm">
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft px-4 py-3">
+          <span className="text-sm text-ink">
             {ah.toUserId === me.id ? (
               <>This case is being handed to you. Review the context package before you accept responsibility.</>
             ) : (
               <>
-                Awaiting acceptance by <span className="font-semibold">{data.names[ah.toUserId]}</span>. The case is locked until they respond.
+                Awaiting acceptance by <span className="font-semibold">{data.names[ah.toUserId]}</span>. Case contents are locked until they respond; the case log stays open.
               </>
             )}
           </span>
-          <ButtonLink href={`/handoffs/${ah.id}`} variant="primary" className="ml-auto h-8">
-            {ah.toUserId === me.id ? "Review package →" : "View package"}
+          <ButtonLink href={`/handoffs/${ah.id}`} variant="primary" size="sm" className="ml-auto">
+            {ah.toUserId === me.id ? "Review package" : "View package"}
           </ButtonLink>
         </div>
       )}
 
-      <div className="flex gap-1 overflow-x-auto border-b border-line">
-        {TABS.map(([t, name]) => {
+      <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist" aria-label="Case sections">
+        {TABS.map(([t, name, Icon]) => {
           const count =
-            t === "context" ? c.contextItems.length : t === "decisions" ? c.decisions.length : t === "actions" ? c.actions.filter((a) => a.status !== "DONE").length : t === "documents" ? c.documents.length : null;
+            t === "updates" ? c.updates.length : t === "context" ? c.contextItems.length : t === "decisions" ? c.decisions.length : t === "actions" ? c.actions.filter((a) => a.status !== "DONE").length : t === "documents" ? c.documents.length : null;
           const flagged = [...r.blockers, ...r.warnings].some((f) => !f.waived && f.fixPath.includes(`tab=${t}`));
           return (
             <button
               key={t}
+              role="tab"
+              aria-selected={tab === t}
               onClick={() => router.replace(`/cases/${id}?tab=${t}`, { scroll: false })}
               className={cx(
-                "relative -mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm",
+                "relative -mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition-colors",
                 tab === t ? "border-accent font-medium text-ink" : "border-transparent text-muted hover:text-ink",
               )}
             >
+              <Icon size={15} aria-hidden className={tab === t ? "text-accent" : ""} />
               {name}
-              {count !== null && <span className="rounded bg-surface-2 px-1.5 text-xs tabular-nums text-muted">{count}</span>}
+              {count !== null && <span className="rounded-full bg-surface-3 px-1.5 text-[11px] font-medium tabular-nums text-ink-2">{count}</span>}
               {flagged && c.status !== "CLOSED" && <span className="h-1.5 w-1.5 rounded-full bg-bad" aria-label="has findings" />}
             </button>
           );
@@ -224,6 +256,7 @@ export function CaseView({ id, tab: initialTab, focus }: { id: string; tab: stri
       {/* Remount on tab or focus change so a finding link opens its editor fresh. */}
       <div key={`${tab}:${focus ?? ""}`}>
         {tab === "overview" && <OverviewTab {...props} />}
+        {tab === "updates" && <UpdatesTab {...props} />}
         {tab === "context" && <ContextTab {...props} />}
         {tab === "decisions" && <DecisionsTab {...props} />}
         {tab === "actions" && <ActionsTab {...props} />}
