@@ -1,0 +1,209 @@
+// Relay data model. Enum-like fields are strings so the schema runs on SQLite
+// locally and Postgres (Neon) in production; allowed values live in src/lib/domain.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String // ADMIN | MANAGER | MEMBER | AUDITOR
+  team         String
+  title        String?
+  createdAt    DateTime @default(now())
+
+  ownedCases    Case[]         @relation("CaseOwner")
+  createdCases  Case[]         @relation("CaseCreator")
+  notifications Notification[]
+}
+
+model Case {
+  id             String    @id @default(cuid())
+  title          String
+  summary        String
+  caseType       String // BILLING_DISPUTE | CUSTOMER_ESCALATION | PROJECT | INCIDENT | GENERAL
+  status         String    @default("ACTIVE") // ACTIVE | IN_HANDOFF | CLOSED
+  priority       String    @default("MEDIUM") // LOW | MEDIUM | HIGH | CRITICAL
+  team           String
+  currentOwnerId String
+  createdById    String
+  deadline       DateTime?
+  createdAt      DateTime
+  closedAt       DateTime?
+  // Head of the activity hash chain, advanced inside every append.
+  logSeq         Int       @default(0)
+  logHead        String    @default("0000000000000000000000000000000000000000000000000000000000000000")
+
+  currentOwner User @relation("CaseOwner", fields: [currentOwnerId], references: [id])
+  createdBy    User @relation("CaseCreator", fields: [createdById], references: [id])
+
+  contextItems ContextItem[]
+  decisions    Decision[]
+  actions      ActionItem[]
+  documents    Document[]
+  handoffs     Handoff[]
+  activity     ActivityLog[]
+  ownership    OwnershipPeriod[]
+
+  @@index([currentOwnerId, status])
+  @@index([team])
+}
+
+model ContextItem {
+  id         String    @id @default(cuid())
+  caseId     String
+  kind       String // BACKGROUND | CONSTRAINT | STAKEHOLDER | OPEN_QUESTION | RISK
+  title      String
+  body       String
+  resolution String?
+  resolvedAt DateTime?
+  authorId   String
+  createdAt  DateTime
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+model Decision {
+  id            String    @id @default(cuid())
+  caseId        String
+  title         String
+  rationale     String    @default("")
+  decidedById   String
+  decidedAt     DateTime
+  supersedesId  String?
+  refDocumentId String?
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+model ActionItem {
+  id             String    @id @default(cuid())
+  caseId         String
+  title          String
+  status         String    @default("OPEN") // OPEN | IN_PROGRESS | BLOCKED | DONE
+  assigneeId     String?
+  dueDate        DateTime?
+  blockedReason  String?
+  note           String?
+  noteUpdatedAt  DateTime?
+  refDocumentId  String?
+  overdueNotifiedAt DateTime?
+  createdAt      DateTime
+  completedAt    DateTime?
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, status])
+  @@index([dueDate])
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  caseId       String
+  filename     String
+  docClass     String // INVOICE | CONTRACT | CORRESPONDENCE | REPORT | OTHER
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String
+  sha256       String
+  uploadedById String
+  uploadedAt   DateTime
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+model Handoff {
+  id             String    @id @default(cuid())
+  caseId         String
+  fromUserId     String
+  toUserId       String
+  reason         String
+  state          String    @default("DRAFT") // DRAFT | PENDING_ACCEPT | ACCEPTED | REJECTED | CANCELLED
+  readinessScore Int?
+  findingsJson   String? // gate result frozen at submission
+  waiversJson    String    @default("[]") // [{code, justification, userId, at}]
+  snapshotJson   String?
+  snapshotHash   String?
+  responseNote   String?
+  initiatedAt    DateTime
+  submittedAt    DateTime?
+  respondedAt    DateTime?
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, state])
+  @@index([toUserId, state])
+}
+
+// Append-only. There is no code path that updates or deletes a row.
+model ActivityLog {
+  id          String   @id @default(cuid())
+  caseId      String
+  seq         Int
+  actorId     String
+  verb        String
+  targetType  String
+  targetId    String?
+  payloadJson String
+  createdAt   DateTime
+  prevHash    String
+  hash        String
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@unique([caseId, seq])
+}
+
+model OwnershipPeriod {
+  id        String    @id @default(cuid())
+  caseId    String
+  userId    String
+  via       String // CREATED | HANDOFF | REASSIGN
+  handoffId String?
+  note      String?
+  startedAt DateTime
+  endedAt   DateTime?
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  kind      String
+  caseId    String?
+  handoffId String?
+  body      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+model GateRule {
+  id        String  @id @default(cuid())
+  code      String  @unique
+  label     String
+  severity  String // BLOCKER | WARNING
+  weight    Int
+  enabled   Boolean @default(true)
+}
