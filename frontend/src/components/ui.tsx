@@ -307,10 +307,10 @@ export const tdClass = 'px-4 py-2.5 align-middle'
 export function BrandMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={cn('size-8 shrink-0', className)} aria-hidden="true">
-      <rect width="32" height="32" rx="9" fill="#3f4720" />
-      <path d="M8 22.5c3.2-.4 5.6-3 5.2-6.2-.3-2.3-3-2.6-3.4-.5-.5 2.7 3.6 4.3 7 3.2 3.3-1.1 5.6-4.4 7.2-8.5" fill="none" stroke="#c08040" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="8" cy="22.5" r="2.1" fill="#fbfaf8" />
-      <circle cx="24" cy="10.5" r="2.1" fill="#b6c17f" />
+      <rect width="32" height="32" rx="9" fill="#434548" />
+      <path d="M8 22.5c3.2-.4 5.6-3 5.2-6.2-.3-2.3-3-2.6-3.4-.5-.5 2.7 3.6 4.3 7 3.2 3.3-1.1 5.6-4.4 7.2-8.5" fill="none" stroke="#e0a458" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="8" cy="22.5" r="2.1" fill="#f4f5f5" />
+      <circle cx="24" cy="10.5" r="2.1" fill="#88aecf" />
     </svg>
   )
 }

@@ -1,5 +1,5 @@
 import type {
-  AckReq, AiDraftReq, AiResult, AlertsRes, Report, ReportQuery, CreateCaseReq, CreateDecisionReq, CreateEmployeeReq, CreateNoteReq, ReassignReq, SubmitHandoffReq, UpdateEmployeeReq, UpdateTaskReq,
+  AckReq, AiDraftReq, AiResult, AlertsRes, Report, ReportDownloads, ReportQuery, CreateCaseReq, CreateDecisionReq, CreateEmployeeReq, CreateNoteReq, ReassignReq, SubmitHandoffReq, UpdateEmployeeReq, UpdateTaskReq,
 } from './contracts'
 import type { Employee, Stage } from '../lib/types'
 
@@ -42,8 +42,11 @@ export interface Api {
   report(q: ReportQuery): Promise<Report>
   /** Saves the report PDF to the user's downloads. */
   reportPdf(q: ReportQuery): Promise<void>
-  /** The report PDF itself, for an in-page preview. */
+  /** The report PDF itself, for an in-page preview (not counted as a download). */
   reportPdfBlob(q: ReportQuery): Promise<Blob>
+  /** Saves the report data (incl. registered / closed case lists) as CSV. */
+  reportCsv(q: ReportQuery): Promise<void>
+  reportDownloads(): Promise<ReportDownloads>
 
   /** Mock: runs the deadline job locally. HTTP: the server runs it on a schedule; we just re-sync. */
   pollDeadlines(): Promise<number>

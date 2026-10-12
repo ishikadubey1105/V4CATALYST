@@ -1,13 +1,11 @@
-import { AlertTriangle, CircleHelp, Clock, Sparkles } from 'lucide-react'
+import { AlertTriangle, CircleHelp, Clock, Cpu } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { AiResult } from '../api/contracts'
 import { Label } from './ui'
 
-/** Says who wrote the text: the AI (on Groq), or the built-in template (no API key / call failed). */
-export function AiSource({ result }: { result: AiResult }) {
-  return result.source === 'groq'
-    ? <Label tone="blue"><Sparkles className="size-3" />Written by AI{result.model ? ` · ${result.model.split('/').pop()}` : ''}</Label>
-    : <Label tone="neutral" className="whitespace-normal">{result.note ?? 'Template draft'}</Label>
+/** Says where the text came from: the server's analysis of this case record (nothing leaves your system). */
+export function AiSource(_: { result: AiResult }) {
+  return <Label tone="neutral"><Cpu className="size-3" />Generated from the case record</Label>
 }
 
 function List({ icon, title, items, tone }: { icon: ReactNode; title: string; items: string[]; tone: string }) {

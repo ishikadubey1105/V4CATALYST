@@ -1,8 +1,12 @@
 import { useStore } from '../store/useStore'
 import { useAlerts } from '../store/useAlerts'
 import { endpoints, type UpdateTaskReq } from './contracts'
-import { downloadFile, fetchFile, request, tokenStore } from './client'
+import { API_MODE, downloadFile, fetchFile, request, setSessionEndedHandler, tokenStore } from './client'
 import type { Api } from './types'
+import type { ReportQuery } from './contracts'
+
+const reportStamp = (q: ReportQuery) =>
+  q.period === 'year' ? String(q.year) : q.period === 'week' ? `${q.year}-W${String(q.week).padStart(2, '0')}` : `${q.year}-${String(q.month).padStart(2, '0')}`
 
 /**
  * Real backend adapter. Each method is one call from contracts.ts, followed by a re-sync so the
@@ -14,6 +18,21 @@ const sync = async () => {
 }
 const id = (v: string) => ({ id: v })
 
+/*
+ * The signed-in user is remembered in localStorage (the store), but the token lives in sessionStorage (per tab).
+ * A new tab, a backend restart with a fresh database, or an expired token used to leave the UI "signed in" with
+ * every call failing "Your session has ended". Now: no token -> signed out; token rejected -> signed out.
+ */
+const endSession = () => {
+  if (!useStore.getState().currentUserId) return
+  useStore.getState().setSession(null)
+  useStore.getState().toast({ tone: 'info', title: 'Your session ended', body: 'Please sign in again to continue.' })
+}
+if (API_MODE === 'http') {
+  setSessionEndedHandler(endSession)
+  if (!tokenStore.get()) useStore.getState().setSession(null)
+}
+
 export const httpApi: Api = {
   async login(username, password) {
     const res = await request(endpoints.login, { body: { username, password } })
@@ -23,9 +42,9 @@ export const httpApi: Api = {
     return res.user
   },
   async logout() {
+    useStore.getState().setSession(null) // first, so a rejected token here isn't reported as "session ended"
     await request(endpoints.logout).catch(() => undefined)
     tokenStore.set(null)
-    useStore.getState().setSession(null)
   },
   sync,
 
@@ -68,9 +87,10 @@ export const httpApi: Api = {
 
   alerts: () => request(endpoints.alerts),
   report: (q) => request(endpoints.report, { query: { ...q } }),
-  reportPdfBlob: async (q) => (await fetchFile(endpoints.reportPdf, { ...q })).blob,
-  reportPdf: (q) => downloadFile(endpoints.reportPdf, { ...q },
-    `thread-report-${q.period === 'year' ? q.year : `${q.year}-${String(q.month).padStart(2, '0')}`}.pdf`),
+  reportPdfBlob: async (q) => (await fetchFile(endpoints.reportPdf, { ...q, download: 'false' })).blob,
+  reportPdf: (q) => downloadFile(endpoints.reportPdf, { ...q }, `thread-report-${reportStamp(q)}.pdf`),
+  reportCsv: (q) => downloadFile(endpoints.reportCsv, { ...q }, `thread-report-${reportStamp(q)}.csv`),
+  reportDownloads: () => request(endpoints.reportDownloads),
 
   async pollDeadlines() { await sync(); return 0 },
   async reportAccessDenied() { /* server already logged the refused request */ },

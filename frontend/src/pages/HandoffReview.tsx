@@ -146,7 +146,7 @@ export default function HandoffReview() {
           {canAct && (
             <Panel>
               <PanelHeader
-                title="AI briefing"
+                title="Handoff briefing"
                 sub="What you are taking on, and what to ask before accepting"
                 action={
                   <Button size="sm" variant="secondary" disabled={briefing.pending} onClick={async () => {

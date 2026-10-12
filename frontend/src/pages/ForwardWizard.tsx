@@ -146,7 +146,7 @@ export default function ForwardWizard() {
                   save({ summary: res.text })
                   setAi(res)
                 }}>
-                  <Sparkles className="size-3.5" />{drafting.pending ? 'Drafting…' : ai ? 'Redraft with AI' : 'Draft with AI'}
+                  <Sparkles className="size-3.5" />{drafting.pending ? 'Drafting…' : ai ? 'Redraft from record' : 'Auto-draft from record'}
                 </Button>
               }
             />

@@ -150,3 +150,54 @@ def test_report_pdf(client, login):
     assert client.get("/api/reports/summary.pdf", headers=login("asha.rao")).json()["code"] == "FORBIDDEN"
     audit = client.get("/api/sync", headers=admin).json()["audit"]
     assert sum(a["action"] == "report.exported" for a in audit) == 2
+    # in-page preview: inline, and not counted as a download
+    preview = client.get("/api/reports/summary.pdf", params={"period": "week", "download": "false"}, headers=admin)
+    assert preview.status_code == 200 and preview.headers["content-disposition"].startswith("inline")
+    audit = client.get("/api/sync", headers=admin).json()["audit"]
+    assert sum(a["action"] == "report.exported" for a in audit) == 2
+
+
+def test_week_report_lists_registered_and_closed_cases(client, login):
+    admin, asha = login("meera.iyer"), login("asha.rao")
+    body = {"title": "Weekly report complaint", "complainant": "Acme", "channel": "Email", "category": "Billing",
+            "priority": "medium", "summary": "Invoice shows the wrong tax rate for October.", "ownerId": "e1"}
+    code = client.post("/api/cases", json=body, headers=asha).json()["code"]
+    for t in ("t7", "t8"):
+        client.patch(f"/api/tasks/{t}", json={"done": True}, headers=asha)
+    assert client.patch("/api/cases/c3/stage", json={"stage": "resolved"}, headers=asha).status_code == 200
+
+    r = report(client, admin, period="week").json()
+    y, w, _ = datetime.now(timezone.utc).isocalendar()
+    assert r["period"]["kind"] == "week" and r["period"]["week"] == w and r["period"]["label"] == f"Week {w}, {y}"
+    assert len(r["trend"]) == 7 and r["trend"][0]["label"].startswith("Mon")
+    assert any(c["code"] == code for c in r["casesRegistered"])
+    closed = next(c for c in r["casesClosed"] if c["id"] == "c3")
+    assert closed["resolvedBy"] == "Asha Rao" and closed["daysToResolve"] >= 0
+    assert r["kpis"]["received"] == len(r["casesRegistered"]) and r["kpis"]["resolved"] == len(r["casesClosed"])
+    assert r["period"]["previousLabel"].startswith(f"Week {(datetime.now(timezone.utc) - timedelta(days=7)).isocalendar()[1]}")
+
+    prev = report(client, admin, period="week", year=2025, week=52).json()
+    assert prev["period"]["start"].startswith("2025-12-22") and not prev["period"]["inProgress"]
+    assert report(client, admin, period="week", year=2025, week=53).json()["code"] == "BAD_REQUEST"  # 2025 has 52 ISO weeks
+    assert report(client, admin, period="month", week=3).json()["code"] == "BAD_REQUEST"
+    pdf = client.get("/api/reports/summary.pdf", params={"period": "week"}, headers=admin)
+    assert pdf.status_code == 200 and f"thread-report-{y}-W{w:02d}.pdf" in pdf.headers["content-disposition"]
+
+
+def test_csv_export_and_download_metric(client, login):
+    admin = login("meera.iyer")
+    assert client.get("/api/reports/downloads", headers=login("asha.rao")).json()["code"] == "FORBIDDEN"
+    assert client.get("/api/reports/downloads", headers=admin).json()["total"] == 0
+
+    r = client.get("/api/reports/summary.csv", params={"period": "week"}, headers=admin)
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/csv")
+    text = r.content.decode("utf-8-sig")
+    assert text.startswith("Thread complaint report") and "Cases registered" in text and "Cases closed" in text
+    assert "Reports downloaded" in text and "Complaints registered" in text
+    client.get("/api/reports/summary.pdf", params={"period": "month"}, headers=admin)
+
+    d = client.get("/api/reports/downloads", headers=admin).json()
+    assert d["total"] == 2 and d["thisWeek"] == 2 and d["thisMonth"] == 2
+    assert {b["key"]: b["count"] for b in d["byFormat"]} == {"PDF": 1, "CSV": 1}
+    assert d["recent"][0]["by"] == "Meera Iyer" and d["recent"][0]["format"] == "PDF"
+    assert report(client, admin, period="week").json()["kpis"]["reportsDownloaded"] == 2

@@ -8,7 +8,7 @@ import { API_MODE, api } from '../api'
 import { routeAccess } from '../lib/permissions'
 import { cn, orgRoleLabel } from '../lib/utils'
 import { Avatar, BrandMark } from './ui'
-import { MintLagoonBackground } from './MintLagoonBackground'
+import { ShellBackground } from './ShellBackground'
 import type { OrgRole } from '../lib/types'
 
 type NavItem = { to: string; label: string; icon: typeof Bell; roles: OrgRole[] }
@@ -88,20 +88,21 @@ export function Layout() {
   const signOut = async () => { await api.logout(); navigate('/login') }
 
   return (
-    <MintLagoonBackground className="flex min-h-screen overflow-clip">
-      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-zinc-200/80 bg-zinc-100/60 lg:flex print:hidden">
-        <Link to="/dashboard" className="flex h-16 items-center gap-2.5 px-5">
-          <BrandMark className="size-8" />
+    <ShellBackground className="flex min-h-screen overflow-clip">
+      <aside className="sticky top-0 hidden h-screen w-[244px] shrink-0 flex-col border-r border-black/20 bg-zinc-900 text-zinc-300 lg:flex print:hidden">
+        <Link to="/dashboard" className="flex h-14 items-center gap-2.5 border-b border-white/[0.07] px-4">
+          <BrandMark className="size-7 rounded-md ring-1 ring-white/15" />
           <span className="leading-none">
-            <span className="block font-display text-[19px] font-medium tracking-tight text-zinc-900">Thread</span>
-            <span className="block text-[10.5px] tracking-wide text-zinc-500">Complaint handoffs</span>
+            <span className="block font-display text-[16px] text-white">Thread</span>
+            <span className="block pt-0.5 text-[10.5px] tracking-wide text-zinc-400">Complaint handoffs</span>
           </span>
+          <span className="ml-auto rounded border border-white/10 px-1.5 py-px font-mono text-[9.5px] uppercase tracking-wider text-zinc-400" title="VITE_API_MODE">{API_MODE === 'http' ? 'live' : 'demo'}</span>
         </Link>
 
-        <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4 pt-2" aria-label="Main">
+        <nav className="flex-1 space-y-5 overflow-y-auto px-2.5 pb-4 pt-4" aria-label="Main">
           {visibleSections.map((section) => (
             <div key={section.title}>
-              <div className="mb-1.5 px-2.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-zinc-400">{section.title}</div>
+              <div className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{section.title}</div>
               <div className="space-y-0.5">
                 {section.items.map(({ to, label, icon: Icon }) => {
                   const n = badge(to)
@@ -109,20 +110,22 @@ export function Layout() {
                     <NavLink
                       key={to}
                       to={to}
-                      className={({ isActive }) => cn('group relative flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30',
-                        isActive ? 'font-medium text-zinc-900' : 'text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900')}
+                      className={({ isActive }) => cn('group relative flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/50',
+                        isActive ? 'font-medium text-white' : 'text-zinc-300 hover:bg-white/[0.05] hover:text-white')}
                     >
                       {({ isActive }) => (
                         <>
                           {isActive && (
-                            <motion.span layoutId="nav-active" aria-hidden="true" className="absolute inset-0 -z-0 rounded-lg bg-white shadow-sm ring-1 ring-zinc-200/70"
-                              transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
+                            <motion.span layoutId="nav-active" aria-hidden="true" className="absolute inset-0 -z-0 rounded-md bg-white/[0.08] ring-1 ring-inset ring-white/[0.06]"
+                              transition={{ type: 'tween', duration: 0.2, ease: [0.25, 0.8, 0.25, 1] }}>
+                              <span className="absolute inset-y-1.5 -left-2.5 w-[3px] rounded-r-full bg-blue-300" />
+                            </motion.span>
                           )}
-                          <Icon className={cn('relative size-[17px]', isActive ? 'text-blue-700' : 'text-zinc-400 group-hover:text-zinc-600')} strokeWidth={1.8} />
+                          <Icon className={cn('relative size-[17px] transition-colors', isActive ? 'text-blue-300' : 'text-zinc-400 group-hover:text-zinc-200')} strokeWidth={1.8} />
                           <span className="relative">{label}</span>
                           {n > 0 && (
                             <span className={cn('relative ml-auto min-w-5 rounded-full px-1.5 text-center font-mono text-[10.5px] font-semibold leading-5',
-                              to === '/alerts' ? 'bg-red-100 text-red-700' : 'bg-zinc-900 text-white')}>{n}</span>
+                              to === '/alerts' ? 'bg-red-500 text-white' : 'bg-zinc-200 text-zinc-900')}>{n}</span>
                           )}
                         </>
                       )}
@@ -134,23 +137,23 @@ export function Layout() {
           ))}
         </nav>
 
-        <div className="m-3 rounded-xl border border-zinc-200/80 bg-white p-3 shadow-xs">
+        <div className="m-2.5 rounded-lg border border-white/[0.08] bg-white/[0.04] p-3">
           <div className="flex items-center gap-2.5">
             <Avatar user={me} size="md" />
             <div className="min-w-0 flex-1 leading-tight">
-              <div className="truncate text-[13px] font-medium text-zinc-900">{me.name}</div>
-              <div className="truncate text-[11px] text-zinc-500">{orgRoleLabel[me.orgRole]} · {me.department}</div>
+              <div className="truncate text-[13px] font-medium text-white">{me.name}</div>
+              <div className="truncate text-[11px] text-zinc-400">{orgRoleLabel[me.orgRole]} · {me.department}</div>
             </div>
-            <button onClick={signOut} title="Sign out" aria-label="Sign out" className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700">
+            <button onClick={signOut} title="Sign out" aria-label="Sign out" className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white">
               <LogOut className="size-4" />
             </button>
           </div>
-          <p className="mt-2.5 text-[11px] leading-relaxed text-zinc-500">{accessNote[me.orgRole]}</p>
+          <p className="mt-2.5 text-[11px] leading-relaxed text-zinc-400">{accessNote[me.orgRole]}</p>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-zinc-200/70 bg-paper/80 px-4 backdrop-blur-md sm:px-8 print:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-zinc-200 bg-white/90 px-4 backdrop-blur-md sm:px-8 print:hidden">
           <Link to="/dashboard" className="lg:hidden" aria-label="Thread home"><BrandMark className="size-7" /></Link>
           <nav className="flex gap-1 overflow-x-auto lg:hidden" aria-label="Main">
             {flat.map(({ to, label }) => (
@@ -161,7 +164,7 @@ export function Layout() {
             {me.orgRole === 'auditor' && <span className="mr-1 rounded-full border border-zinc-300 bg-white px-2.5 py-0.5 text-[11px] font-medium text-zinc-600">Read-only session</span>}
             <Link to="/notifications" className="relative grid size-9 place-items-center rounded-lg text-zinc-500 hover:bg-zinc-200/60 hover:text-zinc-800" title="Notifications" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}>
               <Bell className="size-[18px]" strokeWidth={1.8} />
-              {unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-red-500 ring-2 ring-paper" />}
+              {unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full bg-red-500 ring-2 ring-white" />}
             </Link>
             <div className="relative" ref={menuRef}>
               <button onClick={() => setMenu((m) => !m)} aria-expanded={menu} aria-haspopup="menu" className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-zinc-200/60">
@@ -206,16 +209,16 @@ export function Layout() {
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}
-              initial={reduceMotion ? false : { opacity: 0, y: 14, filter: 'blur(3px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={reduceMotion ? undefined : { opacity: 0, y: -8, transition: { duration: 0.14 } }}
-              transition={{ duration: 0.32, ease: [0.2, 0.7, 0.2, 1] }}
+              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: 0.1 } }}
+              transition={{ duration: 0.2, ease: [0.25, 0.8, 0.25, 1] }}
             >
               {outlet}
             </motion.div>
           </AnimatePresence>
         </main>
       </div>
-    </MintLagoonBackground>
+    </ShellBackground>
   )
 }

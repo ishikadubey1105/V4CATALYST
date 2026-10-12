@@ -16,7 +16,7 @@ export function webglAvailable(): boolean {
  * A card that leans toward the cursor in 3D, with a soft light sheen following it.
  * Flat for people who prefer reduced motion.
  */
-export function TiltCard({ children, className, max = 7 }: { children: ReactNode; className?: string; max?: number }) {
+export function TiltCard({ children, className, max = 4 }: { children: ReactNode; className?: string; max?: number }) {
   const reduce = useReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
   const px = useMotionValue(0.5)
@@ -35,8 +35,8 @@ export function TiltCard({ children, className, max = 7 }: { children: ReactNode
       ref={ref}
       className={cn('group relative [transform-style:preserve-3d]', className)}
       style={{ rotateX, rotateY, transformPerspective: 900 }}
-      whileHover={{ y: -3, boxShadow: '0 18px 40px -16px rgb(43 35 28 / 0.28)' }}
-      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+      whileHover={{ y: -2, boxShadow: '0 14px 32px -14px rgb(34 35 37 / 0.30)' }}
+      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
       onPointerMove={(e) => {
         const r = ref.current!.getBoundingClientRect()
         px.set((e.clientX - r.left) / r.width)
@@ -58,7 +58,7 @@ export function CountUp({ value, decimals = 0, className }: { value: number; dec
   useEffect(() => {
     if (reduce) { setShown(value); return }
     const controls = animate(from.current, value, {
-      duration: 0.9, ease: [0.2, 0.7, 0.2, 1],
+      duration: 0.6, ease: [0.25, 0.8, 0.25, 1],
       onUpdate: (v) => setShown(v),
     })
     from.current = value

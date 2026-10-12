@@ -6,13 +6,13 @@ import * as THREE from 'three'
 /*
  * The login hero: a baton travelling a relay arc between two stations (one person hands a case over, the other
  * receives it), with the case's documents floating behind. Everything is built from primitives — no model or
- * texture downloads. Palette: olive, white, caramel brown.
+ * texture downloads. Palette: Nardo grey, steel blue, signal amber.
  */
 
-const CARAMEL = '#c08040'
-const OLIVE_LIGHT = '#b6c17f'
-const PAPER = '#fbfaf7'
-const MOSS = '#4a8a47'
+const AMBER = '#e0a458' // signal amber: the baton
+const STEEL_LIGHT = '#88aecf'
+const PAPER = '#f4f5f5'
+const DONE = '#10b981'
 
 const curve = new THREE.CatmullRomCurve3([
   new THREE.Vector3(-2.7, -1.15, 0.2),
@@ -42,18 +42,18 @@ function Baton({ animate }: { animate: boolean }) {
   })
   return (
     <>
-      <pointLight ref={light} color={CARAMEL} intensity={6} distance={3.2} decay={2} />
-      <Trail width={3.2} length={7} color={CARAMEL} attenuation={(w) => w * w} decay={1}>
+      <pointLight ref={light} color={AMBER} intensity={6} distance={3.2} decay={2} />
+      <Trail width={3.2} length={7} color={AMBER} attenuation={(w) => w * w} decay={1}>
         <group ref={ref} scale={1.4}>
           <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
             <capsuleGeometry args={[0.085, 0.62, 8, 24]} />
-            <meshStandardMaterial color={CARAMEL} metalness={0.45} roughness={0.28} />
+            <meshStandardMaterial color={AMBER} metalness={0.45} roughness={0.28} />
           </mesh>
           {/* grip bands */}
           {[-0.2, 0.2].map((x) => (
             <mesh key={x} position={[x, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
               <cylinderGeometry args={[0.092, 0.092, 0.05, 24]} />
-              <meshStandardMaterial color="#7a4b22" roughness={0.5} />
+              <meshStandardMaterial color="#8a5a1c" roughness={0.5} />
             </mesh>
           ))}
         </group>
@@ -68,12 +68,12 @@ function Track() {
   return (
     <group>
       <mesh geometry={tube}>
-        <meshBasicMaterial color={OLIVE_LIGHT} transparent opacity={0.55} />
+        <meshBasicMaterial color={STEEL_LIGHT} transparent opacity={0.55} />
       </mesh>
       {dots.map((p, i) => (
         <mesh key={i} position={p}>
           <sphereGeometry args={[0.022, 10, 10]} />
-          <meshBasicMaterial color={OLIVE_LIGHT} transparent opacity={0.8} />
+          <meshBasicMaterial color={STEEL_LIGHT} transparent opacity={0.8} />
         </mesh>
       ))}
     </group>
@@ -89,7 +89,7 @@ function Station({ x, initials, name, role, ring }: { x: number; initials: strin
     <group position={[x, -1.55, 0.2]}>
       <mesh receiveShadow>
         <cylinderGeometry args={[0.55, 0.62, 0.22, 48]} />
-        <meshStandardMaterial color="#4e5926" roughness={0.6} metalness={0.1} />
+        <meshStandardMaterial color="#434548" roughness={0.6} metalness={0.1} />
       </mesh>
       <mesh ref={glow} position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.5, 0.02, 12, 64]} />
@@ -97,10 +97,10 @@ function Station({ x, initials, name, role, ring }: { x: number; initials: strin
       </mesh>
       <Html position={[0, 0.62, 0]} center distanceFactor={7} zIndexRange={[20, 0]}>
         <div className="pointer-events-none flex select-none items-center gap-2 whitespace-nowrap rounded-full bg-white/95 py-1 pl-1 pr-3 shadow-lg">
-          <span className="grid size-7 place-items-center rounded-full bg-[#ecd8bd] text-[11px] font-semibold text-[#5a3a1c]">{initials}</span>
+          <span className="grid size-7 place-items-center rounded-full bg-zinc-200 text-[11px] font-semibold text-zinc-800">{initials}</span>
           <span className="leading-tight">
-            <span className="block text-[12px] font-semibold text-[#2b231c]">{name}</span>
-            <span className="block text-[10px] text-[#8c7d6a]">{role}</span>
+            <span className="block text-[12px] font-semibold text-zinc-900">{name}</span>
+            <span className="block text-[10px] text-zinc-500">{role}</span>
           </span>
         </div>
       </Html>
@@ -126,12 +126,12 @@ function Document({ pos, rot, i }: { pos: readonly number[]; rot: readonly numbe
         {[0.3, 0.17, 0.04, -0.09].map((y, j) => (
           <mesh key={y} position={[-0.08 + (j === 0 ? 0.04 : 0), y, 0.02]}>
             <boxGeometry args={[j === 0 ? 0.42 : 0.5 - j * 0.06, j === 0 ? 0.055 : 0.032, 0.005]} />
-            <meshBasicMaterial color={j === 0 ? '#57493b' : '#dbd1c3'} />
+            <meshBasicMaterial color={j === 0 ? '#55575a' : '#d5d7d8'} />
           </mesh>
         ))}
         <mesh position={[0.24, -0.33, 0.025]}>
           <circleGeometry args={[0.1, 32]} />
-          <meshBasicMaterial color={MOSS} />
+          <meshBasicMaterial color={DONE} />
         </mesh>
         <mesh position={[0.24, -0.33, 0.03]} rotation={[0, 0, -0.75]}>
           <boxGeometry args={[0.09, 0.022, 0.004]} />
@@ -164,18 +164,18 @@ export default function RelayScene({ animate = true }: { animate?: boolean }) {
       frameloop={animate ? 'always' : 'demand'}
       aria-hidden="true"
     >
-      <fog attach="fog" args={['#343b1c', 9, 18]} />
+      <fog attach="fog" args={['#333537', 9, 18]} />
       <ambientLight intensity={0.75} />
-      <directionalLight position={[3, 5, 4]} intensity={1.6} color="#fff6e8" />
-      <directionalLight position={[-4, 2, -2]} intensity={0.5} color={OLIVE_LIGHT} />
+      <directionalLight position={[3, 5, 4]} intensity={1.6} color="#f4f7fa" />
+      <directionalLight position={[-4, 2, -2]} intensity={0.5} color={STEEL_LIGHT} />
       <group position={[0, -0.35, 0]}>
         <Track />
         <Baton animate={animate} />
-        <Station x={-2.7} initials="AR" name="Asha Rao" role="Hands over" ring={CARAMEL} />
-        <Station x={2.7} initials="RM" name="Ravi Menon" role="Receives" ring={OLIVE_LIGHT} />
+        <Station x={-2.7} initials="AR" name="Asha Rao" role="Hands over" ring={AMBER} />
+        <Station x={2.7} initials="RM" name="Ravi Menon" role="Receives" ring={STEEL_LIGHT} />
         {docs.map((d, i) => <Document key={i} pos={d.pos} rot={d.rot} i={i} />)}
       </group>
-      <Sparkles count={70} scale={[9, 5, 4]} size={2.2} speed={animate ? 0.35 : 0} color="#ecd8bd" opacity={0.7} />
+      <Sparkles count={70} scale={[9, 5, 4]} size={2.2} speed={animate ? 0.35 : 0} color="#d5d7d8" opacity={0.7} />
       <CameraRig animate={animate} />
     </Canvas>
   )

@@ -6,7 +6,7 @@ frontend/src/lib/types.ts. Credentials, sessions and failed-login counts never l
 import secrets
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, TypeDecorator, false
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, TypeDecorator, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -194,6 +194,8 @@ class AuditEvent(Base):
     """Append-only. Nothing in the API updates or deletes these rows."""
 
     __tablename__ = "audit"
+    # Reports read events by action within a date range (resolutions, downloads, missed deadlines)
+    __table_args__ = (Index("ix_audit_action_at", "action", "at"),)
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     at: Mapped[datetime] = mapped_column(UtcDateTime, default=now, index=True)
