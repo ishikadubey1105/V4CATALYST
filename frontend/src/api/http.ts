@@ -1,5 +1,5 @@
 import { useStore } from '../store/useStore'
-import { endpoints } from './contracts'
+import { endpoints, type UpdateTaskReq } from './contracts'
 import { request, tokenStore } from './client'
 import type { Api } from './types'
 
@@ -30,7 +30,12 @@ export const httpApi: Api = {
   async reassign(caseId, body) { await request(endpoints.reassign, { params: id(caseId), body }); await sync() },
 
   async createTask(caseId, title) { await request(endpoints.createTask, { params: id(caseId), body: { title } }); await sync() },
-  async updateTask(taskId, patch) { await request(endpoints.updateTask, { params: id(taskId), body: patch }); await sync() },
+  async updateTask(taskId, patch) {
+    // { ownerId: undefined } means "clear it", but JSON.stringify drops undefined keys — send null instead.
+    const body = Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, v ?? null])) as UpdateTaskReq
+    await request(endpoints.updateTask, { params: id(taskId), body })
+    await sync()
+  },
   async createNote(caseId, body) { await request(endpoints.createNote, { params: id(caseId), body }); await sync() },
   async createDecision(caseId, body) { await request(endpoints.createDecision, { params: id(caseId), body }); await sync() },
   async uploadDocuments(caseId, files) {

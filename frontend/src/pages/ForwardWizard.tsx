@@ -135,7 +135,14 @@ export default function ForwardWizard() {
               placeholder="e.g. Carrier has agreed to roll back the routing rule; waiting for written confirmation. Most urgent: send the remediation plan to Nimbus by Friday." />
             <div className="mt-1.5 flex justify-between text-xs">
               <span className={draft.summary.trim().length >= 40 ? 'text-green-700' : 'text-zinc-500'}>{draft.summary.trim().length} / 40 characters minimum</span>
-              <button className="text-blue-700 hover:underline" onClick={() => save({ summary: c.summary })}>Insert case summary</button>
+              {/* Appends below what is already written instead of replacing it. */}
+              <button
+                type="button" disabled={draft.summary.includes(c.summary.trim())}
+                className="text-blue-700 hover:underline disabled:text-zinc-400 disabled:no-underline"
+                onClick={() => save({ summary: [draft.summary.trim(), c.summary.trim()].filter(Boolean).join('\n\n') })}
+              >
+                {draft.summary.includes(c.summary.trim()) ? 'Case summary inserted' : 'Insert case summary'}
+              </button>
             </div>
           </div>
           <div className="flex justify-between border-t border-zinc-200 p-3">
