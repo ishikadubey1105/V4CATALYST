@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     deadline_interval_seconds: int = 60
     upload_dir: str = "./uploads"
     seed_demo: bool = True
+    seed_history: bool = False  # also add ~21 months of past complaints (for the reports) on startup; runs once
 
     # AI handoff assistant. Without a key the assistant falls back to a template draft built from the same data.
     groq_api_key: str | None = None

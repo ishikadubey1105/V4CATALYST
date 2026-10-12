@@ -1,11 +1,11 @@
 import { useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Float, Html, RoundedBox, Sparkles, Trail } from '@react-three/drei'
+import { Float, Html, RoundedBox, Sparkles } from '@react-three/drei'
 import * as THREE from 'three'
 
 /*
- * The login hero: a baton travelling a relay arc between two stations (one person hands a case over, the other
- * receives it), with the case's documents floating behind. Everything is built from primitives — no model or
+ * The login hero: a thread being drawn along a relay arc between two stations (one person hands a case over, the
+ * other receives it) — the case keeps its thread — with the case's documents floating behind. Everything is built from primitives — no model or
  * texture downloads. Palette: olive, white, caramel brown.
  */
 
@@ -24,40 +24,37 @@ const curve = new THREE.CatmullRomCurve3([
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
 
-function Baton({ animate }: { animate: boolean }) {
-  const ref = useRef<THREE.Group>(null)
+const THREAD_SEGMENTS = 200
+const THREAD_RADIAL = 10
+
+/**
+ * The thread: a glowing bead travels from the person handing over to the person receiving, laying an unbroken
+ * caramel thread behind it. The thread is one prebuilt tube revealed with drawRange (no per-frame geometry).
+ */
+function ThreadRunner({ animate }: { animate: boolean }) {
+  const bead = useRef<THREE.Mesh>(null)
   const light = useRef<THREE.PointLight>(null)
-  const up = useMemo(() => new THREE.Vector3(0, 1, 0), [])
+  const tube = useMemo(() => new THREE.TubeGeometry(curve, THREAD_SEGMENTS, 0.03, THREAD_RADIAL, false), [])
   useFrame(({ clock }) => {
-    const raw = animate ? (clock.elapsedTime / 3.2) % 2 : 0.5
-    const t = ease(raw <= 1 ? raw : 2 - raw) // there and back, easing at each station
-    const p = curve.getPointAt(t)
-    const tangent = curve.getTangentAt(t)
-    if (ref.current) {
-      ref.current.position.copy(p)
-      ref.current.quaternion.setFromUnitVectors(up, tangent.normalize())
-      ref.current.rotateY(clock.elapsedTime * 2)
-    }
+    // 3.2s to draw the thread end to end, 1.3s holding the finished thread, then again
+    const cycle = animate ? clock.elapsedTime % 4.5 : 3.2
+    const t = ease(Math.min(cycle / 3.2, 1))
+    tube.setDrawRange(0, Math.floor(t * THREAD_SEGMENTS) * THREAD_RADIAL * 6)
+    const p = curve.getPointAt(Math.max(t, 0.001))
+    bead.current?.position.copy(p)
     light.current?.position.copy(p)
+    if (bead.current) bead.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 6) * 0.08)
   })
   return (
     <>
-      <pointLight ref={light} color={CARAMEL} intensity={6} distance={3.2} decay={2} />
-      <Trail width={3.2} length={7} color={CARAMEL} attenuation={(w) => w * w} decay={1}>
-        <group ref={ref} scale={1.4}>
-          <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-            <capsuleGeometry args={[0.085, 0.62, 8, 24]} />
-            <meshStandardMaterial color={CARAMEL} metalness={0.45} roughness={0.28} />
-          </mesh>
-          {/* grip bands */}
-          {[-0.2, 0.2].map((x) => (
-            <mesh key={x} position={[x, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.092, 0.092, 0.05, 24]} />
-              <meshStandardMaterial color="#7a4b22" roughness={0.5} />
-            </mesh>
-          ))}
-        </group>
-      </Trail>
+      <pointLight ref={light} color={CARAMEL} intensity={7} distance={3.4} decay={2} />
+      <mesh geometry={tube}>
+        <meshStandardMaterial color={CARAMEL} emissive={CARAMEL} emissiveIntensity={0.55} roughness={0.35} metalness={0.2} />
+      </mesh>
+      <mesh ref={bead}>
+        <sphereGeometry args={[0.11, 32, 32]} />
+        <meshStandardMaterial color="#f3dcb8" emissive={CARAMEL} emissiveIntensity={1.4} roughness={0.2} />
+      </mesh>
     </>
   )
 }
@@ -170,7 +167,7 @@ export default function RelayScene({ animate = true }: { animate?: boolean }) {
       <directionalLight position={[-4, 2, -2]} intensity={0.5} color={OLIVE_LIGHT} />
       <group position={[0, -0.35, 0]}>
         <Track />
-        <Baton animate={animate} />
+        <ThreadRunner animate={animate} />
         <Station x={-2.7} initials="AR" name="Asha Rao" role="Hands over" ring={CARAMEL} />
         <Station x={2.7} initials="RM" name="Ravi Menon" role="Receives" ring={OLIVE_LIGHT} />
         {docs.map((d, i) => <Document key={i} pos={d.pos} rot={d.rot} i={i} />)}

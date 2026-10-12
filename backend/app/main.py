@@ -21,6 +21,7 @@ from .errors import ApiError
 from .migrate import upgrade_db
 from .routers import ai, auth, cases, employees, handoffs, insights, notifications, sync
 from .seed import seed
+from .seed_history import seed_history
 
 logging.basicConfig(level=logging.INFO)
 
@@ -32,6 +33,10 @@ async def lifespan(app: FastAPI):
         with SessionLocal() as db:
             if seed(db):
                 logging.getLogger("baton").info("Seeded demo data")
+    if settings.seed_history:
+        with SessionLocal() as db:
+            if n := seed_history(db):  # refuses to run twice, so restarts are safe
+                logging.getLogger("baton").info("Seeded %d historical complaints", n)
     watcher = asyncio.create_task(deadline_loop(settings.deadline_interval_seconds)) if settings.deadline_interval_seconds > 0 else None
     yield
     if watcher:

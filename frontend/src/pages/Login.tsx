@@ -198,7 +198,7 @@ export default function Login() {
           {SHOW_DEMO && (
             <div className="mt-9">
               <div className="flex items-center gap-3 text-[11.5px] text-zinc-600">
-                <span className="h-px flex-1 bg-zinc-200" />Or explore with a demo account<span className="h-px flex-1 bg-zinc-200" />
+                <span className="h-px flex-1 bg-zinc-200" />Demo mode · sign in as a sample employee<span className="h-px flex-1 bg-zinc-200" />
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 {demoAccounts.map((e) => (
