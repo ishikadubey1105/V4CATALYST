@@ -1,6 +1,6 @@
 # Deploying Thread on Vercel (frontend + backend in one project)
 
-This branch (`thread-vercel-fullstack`) deploys the whole app to a single Vercel project:
+This branch (`vercel-deploy`) deploys the whole app to a single Vercel project:
 
 | Part | How Vercel runs it |
 |---|---|
@@ -21,7 +21,7 @@ The app and API share one domain, so there is no CORS setup and preview deployme
 1. vercel.com → **Add New… → Project** → import `ishikadubey1105/V4CATALYST`.
 2. **Root Directory: leave it as the repository root** (`./`), not `frontend`. Framework preset: **Other**.
    Build settings come from `vercel.json`; don't override them.
-3. **Production Branch**: Project → Settings → Git → set it to `thread-vercel-fullstack`.
+3. **Production Branch**: Project → Settings → Git → set it to `vercel-deploy`.
 
 ## 2. Add a PostgreSQL database
 
