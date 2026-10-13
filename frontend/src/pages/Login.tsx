@@ -1,17 +1,12 @@
 import { lazy, Suspense, useState, type FormEvent } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { AlertTriangle, ArrowRight, Check, Eye, EyeOff, Lock, ShieldCheck, User } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, Eye, EyeOff, Lock, ShieldCheck, User, UserRound } from 'lucide-react'
 import { API_MODE, api } from '../api'
 import { BrandMark, inputClass } from '../components/ui'
 import { webglAvailable } from '../components/motion'
 import { ShellBackground } from '../components/ShellBackground'
-import { credentials, employees } from '../data/mock'
-import { avatarTone, cn, initials, orgRoleLabel } from '../lib/utils'
-
-/** Demo accounts (the seeded users) for one-click sign-in during demos. Hide with VITE_DEMO_ACCOUNTS=off. */
-const SHOW_DEMO = import.meta.env.VITE_DEMO_ACCOUNTS !== 'off'
-const demoAccounts = employees.filter((e) => credentials[e.username])
+import { avatarTone, cn } from '../lib/utils'
 
 // The 3D scene (three.js) loads in its own chunk, so the sign-in form never waits for it.
 const RelayScene = lazy(() => import('../components/RelayScene'))
@@ -33,16 +28,16 @@ function HandoverCard() {
 
       <div className="mt-5 flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className={cn('grid size-9 place-items-center rounded-full text-xs font-semibold', avatarTone('e1'))}>AR</span>
-          <div className="leading-tight"><div className="text-[12.5px] font-medium">Asha Rao</div><div className="text-[11px] text-zinc-500">On leave Monday</div></div>
+          <span className={cn('grid size-9 place-items-center rounded-full', avatarTone('e1'))}><UserRound className="size-4" /></span>
+          <div className="leading-tight"><div className="text-[12.5px] font-medium">Current owner</div><div className="text-[11px] text-zinc-500">On leave Monday</div></div>
         </div>
         <svg viewBox="0 0 120 24" className="h-6 flex-1" aria-hidden="true">
           <path id="relay" d="M2 18 C 40 2, 80 2, 118 18" fill="none" stroke="#95979a" strokeWidth="1.5" strokeDasharray="0.1 5" strokeLinecap="round" />
           <rect width="16" height="5" rx="2.5" fill="#e0a458" style={{ offsetPath: 'path("M2 18 C 40 2, 80 2, 118 18")', offsetRotate: 'auto', animation: 'travel 3.2s cubic-bezier(.6,0,.4,1) infinite alternate' }} />
         </svg>
         <div className="flex items-center gap-2">
-          <div className="text-right leading-tight"><div className="text-[12.5px] font-medium">Ravi Menon</div><div className="text-[11px] text-zinc-500">Takes over</div></div>
-          <span className={cn('grid size-9 place-items-center rounded-full text-xs font-semibold', avatarTone('e2'))}>RM</span>
+          <div className="text-right leading-tight"><div className="text-[12.5px] font-medium">Next owner</div><div className="text-[11px] text-zinc-500">Takes over</div></div>
+          <span className={cn('grid size-9 place-items-center rounded-full', avatarTone('e2'))}><UserRound className="size-4" /></span>
         </div>
       </div>
 
@@ -194,27 +189,6 @@ export default function Login() {
               {busy ? 'Signing in…' : <>Sign in <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></>}
             </button>
           </form>
-
-          {SHOW_DEMO && (
-            <div className="mt-9">
-              <div className="flex items-center gap-3 text-[11.5px] text-zinc-600">
-                <span className="h-px flex-1 bg-zinc-200" />Or explore with a demo account<span className="h-px flex-1 bg-zinc-200" />
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                {demoAccounts.map((e) => (
-                  <button key={e.id} type="button" disabled={busy}
-                    onClick={() => { setUsername(e.username); setPassword(credentials[e.username]); void signIn(e.username, credentials[e.username]) }}
-                    className="flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-left shadow-xs transition hover:border-zinc-300 hover:shadow-sm disabled:opacity-50">
-                    <span className={cn('grid size-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold', avatarTone(e.id))}>{initials(e.name)}</span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-[12.5px] font-medium text-zinc-800">{e.name}</span>
-                      <span className="block truncate text-[11px] text-zinc-500">{e.orgRole === 'employee' ? e.department : orgRoleLabel[e.orgRole]}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="mx-auto flex w-full max-w-[380px] items-center justify-between text-[11.5px] text-zinc-600">

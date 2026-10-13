@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react'
+import { UserRound } from 'lucide-react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Float, Html, RoundedBox, Sparkles, Trail } from '@react-three/drei'
 import * as THREE from 'three'
@@ -80,7 +81,7 @@ function Track() {
   )
 }
 
-function Station({ x, initials, name, role, ring }: { x: number; initials: string; name: string; role: string; ring: string }) {
+function Station({ x, name, role, ring }: { x: number; name: string; role: string; ring: string }) {
   const glow = useRef<THREE.Mesh>(null)
   useFrame(({ clock }) => {
     if (glow.current) glow.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 2 + x) * 0.06)
@@ -97,7 +98,7 @@ function Station({ x, initials, name, role, ring }: { x: number; initials: strin
       </mesh>
       <Html position={[0, 0.62, 0]} center distanceFactor={7} zIndexRange={[20, 0]}>
         <div className="pointer-events-none flex select-none items-center gap-2 whitespace-nowrap rounded-full bg-white/95 py-1 pl-1 pr-3 shadow-lg">
-          <span className="grid size-7 place-items-center rounded-full bg-zinc-200 text-[11px] font-semibold text-zinc-800">{initials}</span>
+          <span className="grid size-7 place-items-center rounded-full bg-zinc-200 text-zinc-700"><UserRound className="size-4" strokeWidth={2} /></span>
           <span className="leading-tight">
             <span className="block text-[12px] font-semibold text-zinc-900">{name}</span>
             <span className="block text-[10px] text-zinc-500">{role}</span>
@@ -171,8 +172,8 @@ export default function RelayScene({ animate = true }: { animate?: boolean }) {
       <group position={[0, -0.35, 0]}>
         <Track />
         <Baton animate={animate} />
-        <Station x={-2.7} initials="AR" name="Asha Rao" role="Hands over" ring={AMBER} />
-        <Station x={2.7} initials="RM" name="Ravi Menon" role="Receives" ring={STEEL_LIGHT} />
+        <Station x={-2.7} name="Current owner" role="Hands over" ring={AMBER} />
+        <Station x={2.7} name="Next owner" role="Receives" ring={STEEL_LIGHT} />
         {docs.map((d, i) => <Document key={i} pos={d.pos} rot={d.rot} i={i} />)}
       </group>
       <Sparkles count={70} scale={[9, 5, 4]} size={2.2} speed={animate ? 0.35 : 0} color="#d5d7d8" opacity={0.7} />
