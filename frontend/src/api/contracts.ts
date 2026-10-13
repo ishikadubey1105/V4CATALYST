@@ -55,25 +55,32 @@ export interface AlertsRes { alerts: Alert[]; counts: Record<AlertSeverity, numb
 export interface ReportKpis {
   received: number; resolved: number; openAtEnd: number; avgResolutionDays: number | null; medianResolutionDays: number | null; resolvedWithin14d: number | null
   handoffsSubmitted: number; handoffsAccepted: number; handoffsRejected: number; acceptanceRate: number | null; avgAcceptHours: number | null
-  forcedReassignments: number; tasksCompleted: number; overdueEvents: number; escalations: number
+  forcedReassignments: number; tasksCompleted: number; overdueEvents: number; escalations: number; reportsDownloaded: number
 }
 export interface ReportBucket { label: string; received: number; resolved: number; handoffs: number; open: number | null }
 export interface ReportCount { key: string; count: number }
 export interface ReportPerson { employeeId: string; name: string; department: string; openCases: number; resolved: number; handoffsSent: number; handoffsAccepted: number; tasksCompleted: number; overdueNow: number }
+export type ReportPeriod = 'week' | 'month' | 'year'
+export interface ReportCase { id: string; code: string; title: string; complainant: string; category: string; priority: string; channel: string; stage: string; owner: string; receivedAt: string }
+export interface ReportClosedCase extends ReportCase { resolvedAt: string; resolvedBy: string; daysToResolve: number }
 export interface Report {
-  period: { kind: 'month' | 'year'; year: number; month: number | null; label: string; start: string; end: string; previousLabel: string; inProgress: boolean }
+  period: { kind: ReportPeriod; year: number; month: number | null; week: number | null; label: string; span: string; start: string; end: string; previousLabel: string; inProgress: boolean }
   generatedAt: string
   kpis: ReportKpis
   previous: ReportKpis
   trend: ReportBucket[]
   byCategory: ReportCount[]; byPriority: ReportCount[]; byChannel: ReportCount[]; byStage: ReportCount[]
   people: ReportPerson[]
+  casesRegistered: ReportCase[]
+  casesClosed: ReportClosedCase[]
   summary: string
 }
-export interface ReportQuery { period: 'month' | 'year'; year: number; month?: number }
+/** `year` is the ISO year when period is 'week'. */
+export interface ReportQuery { period: ReportPeriod; year: number; month?: number; week?: number }
+export interface ReportDownloads { total: number; thisWeek: number; thisMonth: number; byFormat: ReportCount[]; recent: { at: string; by: string; detail: string; format: string }[] }
 
-/** AI assistant output. `source` says whether the LLM (on Groq) wrote it or the built-in template did (no key / call failed). */
-export interface AiResult { text: string; urgent: string[]; risks: string[]; gaps: string[]; source: 'groq' | 'template'; model?: string; note?: string }
+/** Handoff assistant output, computed on the server from the case record (no external AI service). */
+export interface AiResult { text: string; urgent: string[]; risks: string[]; gaps: string[]; source: 'local' }
 
 const ep = <Req, Res>(e: Omit<Endpoint<Req, Res>, '_types'>): Endpoint<Req, Res> => e
 
@@ -105,12 +112,14 @@ export const endpoints = {
   createEmployee: ep<CreateEmployeeReq, CreateEmployeeRes>({ method: 'POST', path: '/employees', req: 'CreateEmployeeReq', res: 'CreateEmployeeRes', desc: 'Admin creates an account; returns a one-time password', usedBy: ['AdminConsole › AddEmployee'], errors: ['USERNAME_TAKEN', 'EMAIL_TAKEN', 'FORBIDDEN'] }),
   updateEmployee: ep<UpdateEmployeeReq, Employee>({ method: 'PATCH', path: '/employees/:id', req: 'UpdateEmployeeReq', res: 'Employee', desc: 'Change access level, disable / enable / unlock', usedBy: ['AdminConsole › Employees'], errors: ['FORBIDDEN'] }),
 
-  aiHandoffDraft: ep<AiDraftReq, AiResult>({ method: 'POST', path: '/cases/:id/ai/handoff-draft', req: 'AiDraftReq', res: 'AiResult', desc: 'AI drafts the handoff note + urgent items, risks and gaps to fix', usedBy: ['ForwardWizard › Handoff note'], errors: ['FORBIDDEN'] }),
-  aiHandoffBrief: ep<void, AiResult>({ method: 'POST', path: '/handoffs/:id/ai/brief', req: '—', res: 'AiResult', desc: 'AI briefs the receiver: what they take on, risks, questions to ask', usedBy: ['HandoffReview'], errors: ['FORBIDDEN'] }),
+  aiHandoffDraft: ep<AiDraftReq, AiResult>({ method: 'POST', path: '/cases/:id/ai/handoff-draft', req: 'AiDraftReq', res: 'AiResult', desc: 'Drafts the handoff note + urgent items, risks and gaps to fix, from the case record', usedBy: ['ForwardWizard › Handoff note'], errors: ['FORBIDDEN'] }),
+  aiHandoffBrief: ep<void, AiResult>({ method: 'POST', path: '/handoffs/:id/ai/brief', req: '—', res: 'AiResult', desc: 'Briefs the receiver from the case record: what they take on, risks, questions to ask', usedBy: ['HandoffReview'], errors: ['FORBIDDEN'] }),
 
   alerts: ep<void, AlertsRes>({ method: 'GET', path: '/alerts', req: '—', res: 'AlertsRes', desc: 'Live alerts: overdue / due-soon tasks, waiting forwards, unanswered questions, stale cases', usedBy: ['Alerts', 'Layout banner + badge'] }),
-  reportPdf: ep<void, Blob>({ method: 'GET', path: '/reports/summary.pdf', req: '?period=month|year&year&month', res: 'application/pdf', desc: 'The report as a two-page A4 PDF with charts', usedBy: ['Reports'], errors: ['FORBIDDEN'] }),
-  report: ep<void, Report>({ method: 'GET', path: '/reports/summary', req: '?period=month|year&year&month', res: 'Report', desc: 'Monthly / yearly management report (admins, auditors)', usedBy: ['Reports'], errors: ['FORBIDDEN'] }),
+  reportPdf: ep<void, Blob>({ method: 'GET', path: '/reports/summary.pdf', req: '?period=week|month|year&year&month&week&download', res: 'application/pdf', desc: 'The report as an A4 PDF with charts and case lists; download=false previews without counting', usedBy: ['Reports'], errors: ['FORBIDDEN'] }),
+  reportCsv: ep<void, Blob>({ method: 'GET', path: '/reports/summary.csv', req: '?period=week|month|year&year&month&week', res: 'text/csv', desc: 'Every report figure plus the registered / closed case lists', usedBy: ['Reports'], errors: ['FORBIDDEN'] }),
+  report: ep<void, Report>({ method: 'GET', path: '/reports/summary', req: '?period=week|month|year&year&month&week', res: 'Report', desc: 'Weekly / monthly / yearly management report (admins, auditors)', usedBy: ['Reports'], errors: ['FORBIDDEN'] }),
+  reportDownloads: ep<void, ReportDownloads>({ method: 'GET', path: '/reports/downloads', req: '—', res: 'ReportDownloads', desc: 'Report download metric: this week, this month, total, by format, latest', usedBy: ['Reports'], errors: ['FORBIDDEN'] }),
 } as const
 
 export type EndpointKey = keyof typeof endpoints

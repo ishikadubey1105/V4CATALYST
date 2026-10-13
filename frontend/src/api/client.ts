@@ -16,6 +16,19 @@ export const tokenStore = {
   set: (t: string | null) => { try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY) } catch { /* private mode */ } },
 }
 
+/**
+ * Called when the server rejects the token (expired, revoked, or the database was reset). The http adapter
+ * registers a handler that signs the UI out, so the app returns to the sign-in page instead of failing every action.
+ */
+let onSessionEnded: () => void = () => undefined
+export const setSessionEndedHandler = (fn: () => void) => { onSessionEnded = fn }
+
+async function fail(res: Response): Promise<never> {
+  const err = await res.json().catch(() => ({})) as { code?: string; message?: string }
+  if (res.status === 401 && err.code === 'UNAUTHENTICATED') { tokenStore.set(null); onSessionEnded() }
+  throw new ApiError(res.status, err.code ?? `HTTP_${res.status}`, err.message ?? res.statusText)
+}
+
 /** Fetches a file (e.g. a PDF) with the bearer token; returns it with the server's suggested file name. */
 export async function fetchFile(ep: Endpoint<unknown, unknown>, query: Record<string, string | number | undefined> = {}): Promise<{ blob: Blob; name: string | null }> {
   const filled = Object.entries(query).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
@@ -26,10 +39,7 @@ export async function fetchFile(ep: Endpoint<unknown, unknown>, query: Record<st
   } catch {
     throw new ApiError(0, 'NETWORK', 'Cannot reach the server. Check your connection.')
   }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { code?: string; message?: string }
-    throw new ApiError(res.status, err.code ?? `HTTP_${res.status}`, err.message ?? res.statusText)
-  }
+  if (!res.ok) await fail(res)
   return { blob: await res.blob(), name: /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? null }
 }
 
@@ -68,10 +78,6 @@ export async function request<Req, Res>(
   } catch {
     throw new ApiError(0, 'NETWORK', 'Cannot reach the server. Check your connection.')
   }
-  if (res.status === 401) tokenStore.set(null)
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { code?: string; message?: string }
-    throw new ApiError(res.status, err.code ?? `HTTP_${res.status}`, err.message ?? res.statusText)
-  }
+  if (!res.ok) await fail(res)
   return res.status === 204 ? (undefined as Res) : res.json()
 }

@@ -5,9 +5,10 @@ Each fires once per deadline / forward.
 """
 import asyncio
 import logging
+import time
 from datetime import timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from . import models as m
@@ -78,11 +79,41 @@ def _remind_waiting_handoffs(db: Session) -> None:
         h.reminded = True
 
 
+WATCHER_LOCK = 7_314_003  # Postgres advisory lock id: one watcher run at a time across all instances
+
+
+def run_watcher_exclusive(db: Session) -> int | None:
+    """Run the watcher unless another instance is already running it (then None). The lock ends with the commit."""
+    if db.get_bind().dialect.name == "postgresql":
+        if not db.execute(text("SELECT pg_try_advisory_xact_lock(:k)"), {"k": WATCHER_LOCK}).scalar():
+            return None
+    return run_deadline_watcher(db)
+
+
+_last_run = 0.0
+
+
+def run_watcher_if_due() -> None:
+    """
+    Serverless hosts have no always-on loop, so the watcher rides on regular traffic (every signed-in browser polls
+    /alerts each minute): at most once per DEADLINE_INTERVAL_SECONDS per instance. Vercel Cron covers idle periods.
+    """
+    global _last_run
+    if settings.deadline_interval_seconds <= 0 or time.monotonic() - _last_run < settings.deadline_interval_seconds:
+        return
+    _last_run = time.monotonic()
+    try:
+        with SessionLocal() as db:
+            run_watcher_exclusive(db)
+    except Exception:  # never fail the request that carried it
+        logger.exception("deadline watcher failed")
+
+
 async def deadline_loop(interval_seconds: int) -> None:
     while True:
         try:
             with SessionLocal() as db:
-                n = await asyncio.to_thread(run_deadline_watcher, db)
+                n = await asyncio.to_thread(run_watcher_exclusive, db)
             if n:
                 logger.info("deadline watcher: %d task(s) became overdue", n)
         except Exception:  # keep the loop alive; the next tick retries

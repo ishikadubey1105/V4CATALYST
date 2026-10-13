@@ -7,6 +7,7 @@ import { useEmployee } from '../lib/hooks'
 import { ago, cn, fmtDateTime } from '../lib/utils'
 import { useAlerts } from '../store/useAlerts'
 import { useMe } from '../store/useStore'
+import { CountUp, TiltCard } from '../components/motion'
 
 export const severityMeta: Record<AlertSeverity, { label: string; tone: 'red' | 'amber' | 'blue' | 'neutral'; icon: typeof Info; row: string }> = {
   critical: { label: 'Critical', tone: 'red', icon: OctagonAlert, row: 'border-l-red-600' },
@@ -54,15 +55,16 @@ export default function Alerts() {
         }
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200 md:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         {(Object.keys(severityMeta) as AlertSeverity[]).map((s) => {
           const { label, icon: Icon, tone } = severityMeta[s]
           return (
-            <button key={s} onClick={() => setFilter(filter === s ? 'all' : s)} aria-pressed={filter === s}
-              className={cn('block w-full px-5 py-4 text-left transition-colors', filter === s ? 'bg-zinc-50 shadow-[inset_0_-2px_0_var(--color-zinc-900)]' : 'bg-white hover:bg-zinc-50')}>
-              <div className="flex items-center gap-1.5 text-[12px] text-zinc-500"><Icon className={cn('size-3.5', tone === 'red' ? 'text-red-700' : tone === 'amber' ? 'text-amber-700' : 'text-zinc-400')} />{label}</div>
-              <div className={cn('mt-1 font-display text-[30px] leading-none tabular-nums', counts[s] && s === 'critical' ? 'text-red-700' : 'text-zinc-900')}>{counts[s]}</div>
+            <TiltCard key={s} className={cn('rounded-xl border bg-white shadow-sm', filter === s ? 'border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200/80')}>
+            <button onClick={() => setFilter(filter === s ? 'all' : s)} aria-pressed={filter === s} className="block w-full rounded-xl p-4 text-left">
+              <div className="flex items-center gap-1.5 text-xs text-zinc-600"><Icon className={cn('size-3.5', tone === 'red' ? 'text-red-700' : tone === 'amber' ? 'text-amber-700' : 'text-zinc-500')} />{label}</div>
+              <div className="mt-1.5 font-display text-[30px] font-medium leading-none text-zinc-900"><CountUp value={counts[s]} /></div>
             </button>
+            </TiltCard>
           )
         })}
       </div>

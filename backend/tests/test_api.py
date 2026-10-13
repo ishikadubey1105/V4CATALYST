@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
+from app import models as m
+from app.config import settings
 from app.db import SessionLocal
 from app.deadlines import run_deadline_watcher
 
@@ -229,6 +231,16 @@ def test_upload_documents(client, login):
     assert added["photo.PNG"]["kind"] == "image"  # path components stripped
     r = client.get(f"/api/documents/{added['evidence.pdf']['id']}/download", headers=asha)
     assert r.status_code == 200 and r.content == b"%PDF-1.4 hello"
+    with SessionLocal() as db:  # stored in the database, not on the server's disk
+        d = db.get(m.Document, added["evidence.pdf"]["id"])
+        assert d.content == b"%PDF-1.4 hello" and d.storage_path is None
+
+
+def test_upload_size_limit(client, login, monkeypatch):
+    monkeypatch.setattr(settings, "max_upload_bytes", 10)
+    r = client.post("/api/cases/c3/documents", files=[("files", ("big.txt", b"x" * 11, "text/plain"))], headers=login("asha.rao"))
+    assert r.status_code == 413 and r.json()["code"] == "FILE_TOO_LARGE"
+    assert not [d for d in snap(client, login("asha.rao"))["docs"] if d["name"] == "big.txt"]
 
 
 def test_deadline_watcher_notifies_once(client, login):

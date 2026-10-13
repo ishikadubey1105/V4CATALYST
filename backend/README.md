@@ -25,20 +25,17 @@ VITE_API_MODE=http
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
-## AI handoff assistant
+## Handoff assistant (local analysis)
 
-Two buttons use an LLM on **Groq** (default `openai/gpt-oss-120b`) to make handoffs safer:
+Two buttons help make handoffs safer. Both are computed on the server from the case record: no external AI
+service and no API key, so they work offline, give the same answer for the same record, and cost nothing per use.
 
-- **Forward wizard › Handoff note › Draft with AI** (case owner) — writes the handoff note from the case record and lists
+- **Forward wizard › Handoff note › Draft** (case owner) — writes the handoff note from the case record and lists
   what to do first, the risks, and the gaps to fix before forwarding. The owner reviews, edits, and can undo it.
-- **Handoff review › AI briefing › Brief me** (receiver) — what you are taking on, risks, and questions to ask the
-  sender before accepting (including claims in the note the record doesn't support).
+- **Handoff review › Briefing › Brief me** (receiver) — what you are taking on, risks, and questions to ask the
+  sender before accepting.
 
-Put `GROQ_API_KEY=...` in `backend/.env` (get one at console.groq.com/keys) and restart. Without a key, or if a call fails
-or returns something malformed, a template built from the same records answers instead, labelled as such, so the demo
-never breaks. `AI_MODEL` picks any Groq chat model: `openai/gpt-oss-*` and `qwen/*` get strict JSON-schema output,
-others (e.g. `llama-3.3-70b-versatile`) use JSON mode; every reply is validated before use. Case text is passed as data,
-not instructions. Each use is audit-logged (`ai.handoff_drafted`, `ai.handoff_briefed`). Code: `app/ai.py`, `app/routers/ai.py`.
+Each use is audit-logged (`ai.handoff_drafted`, `ai.handoff_briefed`). Code: `app/ai.py`, `app/routers/ai.py`.
 
 ## Alerts and reports
 
@@ -49,12 +46,29 @@ also sends, once each: a reminder 24h before a deadline, the overdue notice, an 
 overdue (`deadline.escalated` in the audit log), and a reminder to the receiver of a forward waiting 24h.
 Thresholds are settings (`ALERT_*` in `app/config.py`).
 
-**Reports** (`GET /api/reports/summary?period=month|year&year=&month=`, page **Reports**, admins and auditors):
-received / resolved / open, average time to resolve, forwards and acceptance rate, missed deadlines and escalations,
-each compared with the previous period; a trend chart; breakdowns by category, priority, channel and current stage;
-a per-employee table; a written summary. **Download PDF report** (`GET /api/reports/summary.pdf`) gives a two-page
-A4 summary with charts, key findings and current open risks (`app/report_pdf.py`, reportlab + matplotlib); also CSV export. History comes from the audit trail.
+**Reports** (`GET /api/reports/summary?period=week|month|year&year=&month=&week=`, page **Reports**, admins and
+auditors), all computed in Python from the database (`app/reports.py`): complaints **registered** and **closed** with
+the full list of each, open backlog, time to resolve, forwards and acceptance rate, missed deadlines and escalations,
+and **reports downloaded**, each compared with the previous period (like for like while a period is in progress);
+a trend chart; breakdowns by category, priority, channel and stage; a per-employee table; a written summary.
+`week` is the ISO week number (Monday–Sunday in `APP_TIMEZONE`, like every report period).
+
+- `GET /api/reports/summary.pdf` — A4 management report with charts (`app/report_pdf.py`, reportlab + matplotlib).
+  `download=false` serves it inline for the in-page preview without counting it as a download.
+- `GET /api/reports/summary.csv` — every number and every registered / closed case, for Excel or Sheets.
+- `GET /api/reports/downloads` — the download metric: this week, this month, all time, by format, latest downloads.
+
+Every PDF/CSV download is audit-logged as `report.exported`. Report queries read only the audit actions they need
+up to the period end (index `ix_audit_action_at`), so they stay fast as the log grows; PDF rendering runs in the
+API's worker threads, so add workers (`uvicorn --workers N`) to serve more simultaneous downloads.
 For a demo with a full year of data: `python manage.py seed-history` (adds 21 months of complaints, once).
+
+## Deploying
+
+Uploaded documents are stored in the database (`documents.content`), so no persistent disk is needed (Render's free
+tier wipes its disk on every deploy). The API also runs on serverless hosts: with `VERCEL` set it migrates on the first
+request, opens a connection per request, and runs the deadline watcher from `/api/cron/deadlines` (`CRON_SECRET`)
+and the alerts poll instead of a background loop.
 
 ## Database
 
@@ -100,7 +114,7 @@ migrations, legacy-database adoption, downgrade/upgrade round trip).
 |---|---|
 | `app/main.py` | App, CORS, `{code, message}` error handlers, startup (create tables, seed, deadline loop) |
 | `app/routers/*.py` | One module per area: `auth`, `sync`, `cases` (+ tasks, notes, decisions, documents, questions), `handoffs`, `notifications`, `employees` |
-| `app/ai.py`, `app/routers/ai.py` | AI handoff assistant (Groq LLM + template fallback) |
+| `app/ai.py`, `app/routers/ai.py` | Handoff assistant, computed locally from the case record |
 | `app/alerts.py`, `app/reports.py`, `app/routers/insights.py` | Alert rules and the monthly / yearly report |
 | `app/rules.py` | Port of `permissions.ts` + `completeness.ts`: case roles, visibility, stage rules, 8-check gate |
 | `app/models.py` | SQLAlchemy tables |

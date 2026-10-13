@@ -2,8 +2,6 @@ fastapi>=0.115
 uvicorn[standard]>=0.30
 SQLAlchemy>=2.0
 alembic>=1.13
-# AI handoff assistant on Groq (optional: works without a key via template drafts)
-groq>=0.30
 # PDF reports (charts + layout)
 reportlab>=4.0
 matplotlib>=3.8

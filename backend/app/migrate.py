@@ -53,10 +53,16 @@ def _upgrade(conn: Connection, tables: set[str]) -> None:
     command.upgrade(cfg, "head")
 
 
+MIGRATION_LOCK = 7_314_002  # any constant: Postgres advisory lock id shared by every instance of this app
+
+
 def upgrade_db(engine: Engine = default_engine) -> None:
-    tables = set(inspect(engine).get_table_names())
     with migration_connection(engine) as conn:
-        _upgrade(conn, tables)
+        if conn.dialect.name == "postgresql":
+            # Several instances can cold-start at once (serverless, or more than one worker): only one migrates,
+            # the others wait here and then find the schema current. Released when the migration commits.
+            conn.exec_driver_sql(f"SELECT pg_advisory_xact_lock({MIGRATION_LOCK})")
+        _upgrade(conn, set(inspect(conn).get_table_names()))
 
 
 def current_revision(engine: Engine = default_engine) -> str | None:

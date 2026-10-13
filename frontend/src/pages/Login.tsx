@@ -1,17 +1,12 @@
 import { lazy, Suspense, useState, type FormEvent } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { AlertTriangle, ArrowRight, Check, Eye, EyeOff, Lock, ShieldCheck, User } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, Eye, EyeOff, Lock, ShieldCheck, User, UserRound } from 'lucide-react'
 import { API_MODE, api } from '../api'
 import { BrandMark, inputClass } from '../components/ui'
 import { webglAvailable } from '../components/motion'
-import { MintLagoonBackground } from '../components/MintLagoonBackground'
-import { credentials, employees } from '../data/mock'
-import { avatarTone, cn, initials, orgRoleLabel } from '../lib/utils'
-
-/** Demo accounts (the seeded users) for one-click sign-in during demos. Hide with VITE_DEMO_ACCOUNTS=off. */
-const SHOW_DEMO = import.meta.env.VITE_DEMO_ACCOUNTS !== 'off'
-const demoAccounts = employees.filter((e) => credentials[e.username])
+import { ShellBackground } from '../components/ShellBackground'
+import { avatarTone, cn } from '../lib/utils'
 
 // The 3D scene (three.js) loads in its own chunk, so the sign-in form never waits for it.
 const RelayScene = lazy(() => import('../components/RelayScene'))
@@ -33,16 +28,16 @@ function HandoverCard() {
 
       <div className="mt-5 flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className={cn('grid size-9 place-items-center rounded-full text-xs font-semibold', avatarTone('e1'))}>AR</span>
-          <div className="leading-tight"><div className="text-[12.5px] font-medium">Asha Rao</div><div className="text-[11px] text-zinc-500">On leave Monday</div></div>
+          <span className={cn('grid size-9 place-items-center rounded-full', avatarTone('e1'))}><UserRound className="size-4" /></span>
+          <div className="leading-tight"><div className="text-[12.5px] font-medium">Current owner</div><div className="text-[11px] text-zinc-500">On leave Monday</div></div>
         </div>
         <svg viewBox="0 0 120 24" className="h-6 flex-1" aria-hidden="true">
-          <path id="relay" d="M2 18 C 40 2, 80 2, 118 18" fill="none" stroke="#b3a593" strokeWidth="1.5" strokeDasharray="0.1 5" strokeLinecap="round" />
-          <rect width="16" height="5" rx="2.5" fill="#c08040" style={{ offsetPath: 'path("M2 18 C 40 2, 80 2, 118 18")', offsetRotate: 'auto', animation: 'travel 3.2s cubic-bezier(.6,0,.4,1) infinite alternate' }} />
+          <path id="relay" d="M2 18 C 40 2, 80 2, 118 18" fill="none" stroke="#95979a" strokeWidth="1.5" strokeDasharray="0.1 5" strokeLinecap="round" />
+          <rect width="16" height="5" rx="2.5" fill="#e0a458" style={{ offsetPath: 'path("M2 18 C 40 2, 80 2, 118 18")', offsetRotate: 'auto', animation: 'travel 3.2s cubic-bezier(.6,0,.4,1) infinite alternate' }} />
         </svg>
         <div className="flex items-center gap-2">
-          <div className="text-right leading-tight"><div className="text-[12.5px] font-medium">Ravi Menon</div><div className="text-[11px] text-zinc-500">Takes over</div></div>
-          <span className={cn('grid size-9 place-items-center rounded-full text-xs font-semibold', avatarTone('e2'))}>RM</span>
+          <div className="text-right leading-tight"><div className="text-[12.5px] font-medium">Next owner</div><div className="text-[11px] text-zinc-500">Takes over</div></div>
+          <span className={cn('grid size-9 place-items-center rounded-full', avatarTone('e2'))}><UserRound className="size-4" /></span>
         </div>
       </div>
 
@@ -102,21 +97,21 @@ export default function Login() {
   return (
     <div className="grid min-h-screen grid-cols-1 bg-paper lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)]">
       {/* Brand story */}
-      <aside className="grain relative hidden overflow-hidden bg-blue-900 text-zinc-50 lg:flex lg:flex-col">
+      <aside className="grain relative hidden overflow-hidden bg-zinc-900 text-zinc-50 lg:flex lg:flex-col">
         <div aria-hidden="true" className="pointer-events-none absolute -right-40 -top-40 size-[520px] rounded-full border border-white/[0.06]" />
         <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-24 size-[360px] rounded-full border border-white/[0.06]" />
         <div className="flex items-center gap-2.5 px-12 pt-10">
-          <BrandMark className="size-9 ring-1 ring-white/10 rounded-[10px]" />
-          <span className="font-display text-[22px] font-medium tracking-tight">Thread</span>
+          <BrandMark className="size-9 rounded-lg ring-1 ring-white/15" />
+          <span className="font-display text-[21px]">Thread</span>
         </div>
 
         <div className="relative z-10 px-12 pt-12 xl:px-16">
           <div className="max-w-[520px] animate-rise">
             <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-baton">Complaint handoffs</div>
-            <h1 className="font-display text-[44px] font-normal leading-[1.08] xl:text-[52px]">
-              No complaint left <em className="font-display italic text-baton-soft">hanging</em>.
+            <h1 className="font-display text-[42px] leading-[1.08] xl:text-[50px]">
+              No complaint left <em className="font-display font-medium italic text-baton">hanging</em>.
             </h1>
-            <p className="mt-5 max-w-[440px] text-[15px] leading-relaxed text-blue-100/80">
+            <p className="mt-5 max-w-[440px] text-[15px] leading-relaxed text-zinc-300">
               Thread keeps every case's story in one piece as it changes hands — context, decisions, deadlines and open
               questions travel together, so the customer never has to explain twice.
             </p>
@@ -134,7 +129,7 @@ export default function Login() {
           )}
         </div>
 
-        <div className="relative z-10 grid grid-cols-3 gap-6 border-t border-white/10 px-12 py-6 text-[12px] text-blue-100/70 xl:px-16">
+        <div className="relative z-10 grid grid-cols-3 gap-6 border-t border-white/10 px-12 py-6 text-[12px] text-zinc-400 xl:px-16">
           {[['8-point', 'completeness check before any forward'], ['5 sections', 'acknowledged by the receiver'], ['Every step', 'recorded in an append-only audit trail']].map(([k, v]) => (
             <div key={k}><div className="font-display text-[17px] text-zinc-50">{k}</div><div className="mt-0.5 leading-snug">{v}</div></div>
           ))}
@@ -142,14 +137,14 @@ export default function Login() {
       </aside>
 
       {/* Sign-in */}
-      <MintLagoonBackground role="main" className="flex min-w-0 flex-col px-6 py-10 sm:px-10">
+      <ShellBackground role="main" className="flex min-w-0 flex-col px-6 py-10 sm:px-10">
         <div className="flex items-center gap-2.5 lg:hidden">
           <BrandMark className="size-8" />
-          <span className="font-display text-xl font-medium">Thread</span>
+          <span className="font-display text-xl">Thread</span>
         </div>
 
         <div className="mx-auto flex w-full max-w-[380px] flex-1 flex-col justify-center py-10">
-          <h2 className="font-display text-[34px] font-normal leading-tight text-zinc-900">Welcome back</h2>
+          <h2 className="font-display text-[30px] leading-tight text-zinc-900">Welcome back</h2>
           <p className="mt-2 text-[14px] text-zinc-500">Sign in with the account your administrator gave you.</p>
 
           <form onSubmit={submit} className="mt-8 space-y-4" noValidate>
@@ -194,34 +189,13 @@ export default function Login() {
               {busy ? 'Signing in…' : <>Sign in <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></>}
             </button>
           </form>
-
-          {SHOW_DEMO && (
-            <div className="mt-9">
-              <div className="flex items-center gap-3 text-[11.5px] text-zinc-600">
-                <span className="h-px flex-1 bg-zinc-200" />Demo mode · sign in as a sample employee<span className="h-px flex-1 bg-zinc-200" />
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                {demoAccounts.map((e) => (
-                  <button key={e.id} type="button" disabled={busy}
-                    onClick={() => { setUsername(e.username); setPassword(credentials[e.username]); void signIn(e.username, credentials[e.username]) }}
-                    className="flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-left shadow-xs transition hover:border-zinc-300 hover:shadow-sm disabled:opacity-50">
-                    <span className={cn('grid size-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold', avatarTone(e.id))}>{initials(e.name)}</span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-[12.5px] font-medium text-zinc-800">{e.name}</span>
-                      <span className="block truncate text-[11px] text-zinc-500">{e.orgRole === 'employee' ? e.department : orgRoleLabel[e.orgRole]}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="mx-auto flex w-full max-w-[380px] items-center justify-between text-[11.5px] text-zinc-600">
           <span className="flex items-center gap-1.5"><ShieldCheck className="size-3.5" />5 failed attempts lock the account</span>
           <span className="font-mono" title="VITE_API_MODE">{API_MODE === 'http' ? 'live' : 'demo'} mode</span>
         </div>
-      </MintLagoonBackground>
+      </ShellBackground>
     </div>
   )
 }

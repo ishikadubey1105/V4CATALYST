@@ -1,18 +1,19 @@
 import { useMemo, useRef } from 'react'
+import { UserRound } from 'lucide-react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Float, Html, RoundedBox, Sparkles } from '@react-three/drei'
+import { Float, Html, RoundedBox, Sparkles, Trail } from '@react-three/drei'
 import * as THREE from 'three'
 
 /*
- * The login hero: a thread being drawn along a relay arc between two stations (one person hands a case over, the
- * other receives it) — the case keeps its thread — with the case's documents floating behind. Everything is built from primitives — no model or
- * texture downloads. Palette: olive, white, caramel brown.
+ * The login hero: a baton travelling a relay arc between two stations (one person hands a case over, the other
+ * receives it), with the case's documents floating behind. Everything is built from primitives — no model or
+ * texture downloads. Palette: Nardo grey, steel blue, signal amber.
  */
 
-const CARAMEL = '#c08040'
-const OLIVE_LIGHT = '#b6c17f'
-const PAPER = '#fbfaf7'
-const MOSS = '#4a8a47'
+const AMBER = '#e0a458' // signal amber: the baton
+const STEEL_LIGHT = '#88aecf'
+const PAPER = '#f4f5f5'
+const DONE = '#10b981'
 
 const curve = new THREE.CatmullRomCurve3([
   new THREE.Vector3(-2.7, -1.15, 0.2),
@@ -24,37 +25,40 @@ const curve = new THREE.CatmullRomCurve3([
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
 
-const THREAD_SEGMENTS = 200
-const THREAD_RADIAL = 10
-
-/**
- * The thread: a glowing bead travels from the person handing over to the person receiving, laying an unbroken
- * caramel thread behind it. The thread is one prebuilt tube revealed with drawRange (no per-frame geometry).
- */
-function ThreadRunner({ animate }: { animate: boolean }) {
-  const bead = useRef<THREE.Mesh>(null)
+function Baton({ animate }: { animate: boolean }) {
+  const ref = useRef<THREE.Group>(null)
   const light = useRef<THREE.PointLight>(null)
-  const tube = useMemo(() => new THREE.TubeGeometry(curve, THREAD_SEGMENTS, 0.03, THREAD_RADIAL, false), [])
+  const up = useMemo(() => new THREE.Vector3(0, 1, 0), [])
   useFrame(({ clock }) => {
-    // 3.2s to draw the thread end to end, 1.3s holding the finished thread, then again
-    const cycle = animate ? clock.elapsedTime % 4.5 : 3.2
-    const t = ease(Math.min(cycle / 3.2, 1))
-    tube.setDrawRange(0, Math.floor(t * THREAD_SEGMENTS) * THREAD_RADIAL * 6)
-    const p = curve.getPointAt(Math.max(t, 0.001))
-    bead.current?.position.copy(p)
+    const raw = animate ? (clock.elapsedTime / 3.2) % 2 : 0.5
+    const t = ease(raw <= 1 ? raw : 2 - raw) // there and back, easing at each station
+    const p = curve.getPointAt(t)
+    const tangent = curve.getTangentAt(t)
+    if (ref.current) {
+      ref.current.position.copy(p)
+      ref.current.quaternion.setFromUnitVectors(up, tangent.normalize())
+      ref.current.rotateY(clock.elapsedTime * 2)
+    }
     light.current?.position.copy(p)
-    if (bead.current) bead.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 6) * 0.08)
   })
   return (
     <>
-      <pointLight ref={light} color={CARAMEL} intensity={7} distance={3.4} decay={2} />
-      <mesh geometry={tube}>
-        <meshStandardMaterial color={CARAMEL} emissive={CARAMEL} emissiveIntensity={0.55} roughness={0.35} metalness={0.2} />
-      </mesh>
-      <mesh ref={bead}>
-        <sphereGeometry args={[0.11, 32, 32]} />
-        <meshStandardMaterial color="#f3dcb8" emissive={CARAMEL} emissiveIntensity={1.4} roughness={0.2} />
-      </mesh>
+      <pointLight ref={light} color={AMBER} intensity={6} distance={3.2} decay={2} />
+      <Trail width={3.2} length={7} color={AMBER} attenuation={(w) => w * w} decay={1}>
+        <group ref={ref} scale={1.4}>
+          <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
+            <capsuleGeometry args={[0.085, 0.62, 8, 24]} />
+            <meshStandardMaterial color={AMBER} metalness={0.45} roughness={0.28} />
+          </mesh>
+          {/* grip bands */}
+          {[-0.2, 0.2].map((x) => (
+            <mesh key={x} position={[x, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.092, 0.092, 0.05, 24]} />
+              <meshStandardMaterial color="#8a5a1c" roughness={0.5} />
+            </mesh>
+          ))}
+        </group>
+      </Trail>
     </>
   )
 }
@@ -65,19 +69,19 @@ function Track() {
   return (
     <group>
       <mesh geometry={tube}>
-        <meshBasicMaterial color={OLIVE_LIGHT} transparent opacity={0.55} />
+        <meshBasicMaterial color={STEEL_LIGHT} transparent opacity={0.55} />
       </mesh>
       {dots.map((p, i) => (
         <mesh key={i} position={p}>
           <sphereGeometry args={[0.022, 10, 10]} />
-          <meshBasicMaterial color={OLIVE_LIGHT} transparent opacity={0.8} />
+          <meshBasicMaterial color={STEEL_LIGHT} transparent opacity={0.8} />
         </mesh>
       ))}
     </group>
   )
 }
 
-function Station({ x, initials, name, role, ring }: { x: number; initials: string; name: string; role: string; ring: string }) {
+function Station({ x, name, role, ring }: { x: number; name: string; role: string; ring: string }) {
   const glow = useRef<THREE.Mesh>(null)
   useFrame(({ clock }) => {
     if (glow.current) glow.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 2 + x) * 0.06)
@@ -86,7 +90,7 @@ function Station({ x, initials, name, role, ring }: { x: number; initials: strin
     <group position={[x, -1.55, 0.2]}>
       <mesh receiveShadow>
         <cylinderGeometry args={[0.55, 0.62, 0.22, 48]} />
-        <meshStandardMaterial color="#4e5926" roughness={0.6} metalness={0.1} />
+        <meshStandardMaterial color="#434548" roughness={0.6} metalness={0.1} />
       </mesh>
       <mesh ref={glow} position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.5, 0.02, 12, 64]} />
@@ -94,10 +98,10 @@ function Station({ x, initials, name, role, ring }: { x: number; initials: strin
       </mesh>
       <Html position={[0, 0.62, 0]} center distanceFactor={7} zIndexRange={[20, 0]}>
         <div className="pointer-events-none flex select-none items-center gap-2 whitespace-nowrap rounded-full bg-white/95 py-1 pl-1 pr-3 shadow-lg">
-          <span className="grid size-7 place-items-center rounded-full bg-[#ecd8bd] text-[11px] font-semibold text-[#5a3a1c]">{initials}</span>
+          <span className="grid size-7 place-items-center rounded-full bg-zinc-200 text-zinc-700"><UserRound className="size-4" strokeWidth={2} /></span>
           <span className="leading-tight">
-            <span className="block text-[12px] font-semibold text-[#2b231c]">{name}</span>
-            <span className="block text-[10px] text-[#8c7d6a]">{role}</span>
+            <span className="block text-[12px] font-semibold text-zinc-900">{name}</span>
+            <span className="block text-[10px] text-zinc-500">{role}</span>
           </span>
         </div>
       </Html>
@@ -123,12 +127,12 @@ function Document({ pos, rot, i }: { pos: readonly number[]; rot: readonly numbe
         {[0.3, 0.17, 0.04, -0.09].map((y, j) => (
           <mesh key={y} position={[-0.08 + (j === 0 ? 0.04 : 0), y, 0.02]}>
             <boxGeometry args={[j === 0 ? 0.42 : 0.5 - j * 0.06, j === 0 ? 0.055 : 0.032, 0.005]} />
-            <meshBasicMaterial color={j === 0 ? '#57493b' : '#dbd1c3'} />
+            <meshBasicMaterial color={j === 0 ? '#55575a' : '#d5d7d8'} />
           </mesh>
         ))}
         <mesh position={[0.24, -0.33, 0.025]}>
           <circleGeometry args={[0.1, 32]} />
-          <meshBasicMaterial color={MOSS} />
+          <meshBasicMaterial color={DONE} />
         </mesh>
         <mesh position={[0.24, -0.33, 0.03]} rotation={[0, 0, -0.75]}>
           <boxGeometry args={[0.09, 0.022, 0.004]} />
@@ -161,18 +165,18 @@ export default function RelayScene({ animate = true }: { animate?: boolean }) {
       frameloop={animate ? 'always' : 'demand'}
       aria-hidden="true"
     >
-      <fog attach="fog" args={['#343b1c', 9, 18]} />
+      <fog attach="fog" args={['#333537', 9, 18]} />
       <ambientLight intensity={0.75} />
-      <directionalLight position={[3, 5, 4]} intensity={1.6} color="#fff6e8" />
-      <directionalLight position={[-4, 2, -2]} intensity={0.5} color={OLIVE_LIGHT} />
+      <directionalLight position={[3, 5, 4]} intensity={1.6} color="#f4f7fa" />
+      <directionalLight position={[-4, 2, -2]} intensity={0.5} color={STEEL_LIGHT} />
       <group position={[0, -0.35, 0]}>
         <Track />
-        <ThreadRunner animate={animate} />
-        <Station x={-2.7} initials="AR" name="Asha Rao" role="Hands over" ring={CARAMEL} />
-        <Station x={2.7} initials="RM" name="Ravi Menon" role="Receives" ring={OLIVE_LIGHT} />
+        <Baton animate={animate} />
+        <Station x={-2.7} name="Current owner" role="Hands over" ring={AMBER} />
+        <Station x={2.7} name="Next owner" role="Receives" ring={STEEL_LIGHT} />
         {docs.map((d, i) => <Document key={i} pos={d.pos} rot={d.rot} i={i} />)}
       </group>
-      <Sparkles count={70} scale={[9, 5, 4]} size={2.2} speed={animate ? 0.35 : 0} color="#ecd8bd" opacity={0.7} />
+      <Sparkles count={70} scale={[9, 5, 4]} size={2.2} speed={animate ? 0.35 : 0} color="#d5d7d8" opacity={0.7} />
       <CameraRig animate={animate} />
     </Canvas>
   )
